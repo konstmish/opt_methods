@@ -4,8 +4,8 @@ import numpy as np
 import numpy.linalg as la
 from sklearn.utils.extmath import row_norms, safe_sparse_dot
 
-from loss_oracle import Oracle
-from utils import safe_sparse_add, safe_sparse_multiply, safe_sparse_norm
+from .loss_oracle import Oracle
+from .utils import safe_sparse_add, safe_sparse_multiply, safe_sparse_norm
 
 
 def logsig(x):
@@ -45,19 +45,19 @@ class LogisticRegression(Oracle):
         self.n, self.dim = A.shape
         self.store_mat_vec_prod = store_mat_vec_prod
         self.x_last = np.zeros(self.dim)
-        self.mat_vec_prod = np.zeros(self.dim)
+        self.mat_vec_prod = np.zeros(self.n)
     
     def value(self, x):
         z = self.mat_vec_product(x)
         regularization = self.l1*safe_sparse_norm(x, ord=1) + self.l2/2*safe_sparse_norm(x)**2
-        return np.mean((1-y_)*z-logsig(z)) + regularization
+        return np.mean((1-self.b)*z-logsig(z)) + regularization
     
     def gradient(self, x):
         z = self.mat_vec_product(x)
         if scipy.sparse.issparse(z):
             z = z.toarray()
         activation = scipy.special.expit(z)        
-        grad = safe_sparse_add(self.A.T@(activation-y)/self.n, l2*x)
+        grad = safe_sparse_add(self.A.T@(activation-self.b)/self.n, self.l2*x)
         return grad
     
     def hessian(self, x):
@@ -65,14 +65,14 @@ class LogisticRegression(Oracle):
         if scipy.sparse.issparse(z):
             z = z.toarray()
         activation = scipy.special.expit(z)
-        weights = activation * (1 - activation)
+        weights = activation * (1-activation)
         A_weighted = safe_sparse_multiply(self.A.T, weights)
         return A_weighted@self.A + l2*np.eye(len(w))
     
-    def mat_vec_product(self):
+    def mat_vec_product(self, x):
         if not self.store_mat_vec_prod or safe_sparse_norm(x-self.x_last) != 0:
             z = self.A @ x
-            if self.store_product:
+            if self.store_mat_vec_prod:
                 self.mat_vec_prod = z
                 self.x_last = x.copy()
 

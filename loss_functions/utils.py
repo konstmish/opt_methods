@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import scipy
 
 def safe_sparse_add(a, b):
