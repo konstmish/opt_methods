@@ -28,8 +28,8 @@ class Trace:
             f_opt = np.min(self.loss_vals)
         if markevery is None:
             markevery = max(1, len(self.loss_vals)//20)
-        plt.plot(self.its, self.loss_vals - f_opt, label=label, marker=marker, markevery=markevery)
-        plt.ylabel(r'$f(x)-f^*')
+        plt.plot(self.its, self.loss_vals - f_opt, markevery=markevery, *args, **kwargs)
+        plt.ylabel(r'$f(x)-f^*$')
         
     def plot_distances(self, x_opt=None, markevery=None, *args, **kwargs):
         if x_opt is None:
@@ -40,8 +40,8 @@ class Trace:
                 x_opt = self.xs[i_min]
         if markevery is None:
             markevery = max(1, len(self.xs)//20)
-        plt.plot(self.its, la.norm(self.xs-x_opt, axis=1), markevery=markevery, *args, **kwargs)
-        plt.ylabel(r'\lvert x-x^*\rvert')
+        plt.plot(self.its, la.norm(self.xs-x_opt, axis=1)**2, markevery=markevery, *args, **kwargs)
+        plt.ylabel(r'$\Vert x-x^*\Vert^2$')
 
         
 class StochasticTrace:
@@ -55,6 +55,7 @@ class StochasticTrace:
         self.ts_all = {}
         self.its_all = {}
         self.loss_vals_all = {}
+        self.its_converted_to_epochs = False
         
     def init_seed(self):
         self.xs = []
@@ -66,7 +67,7 @@ class StochasticTrace:
         self.xs_all[seed] = self.xs.copy()
         self.ts_all[seed] = self.ts.copy()
         self.its_all[seed] = self.its.copy()
-        self.loss_vals_all[seed] = self.loss_vals.copy()
+        self.loss_vals_all[seed] = self.loss_vals.copy() if self.loss_vals else None
     
     def compute_loss_of_iterates(self):
         for seed, loss_vals in self.loss_vals_all.items():
@@ -75,51 +76,76 @@ class StochasticTrace:
             else:
                 print("""Loss values for seed {} have already been computed. 
                       Set .loss_vals_all[{}] = None to recompute""".format(seed, seed))
-          
-    def plot_losses(self, f_opt=None, log_std=True, markevery=None, alpha=0.3, *args, **kwargs):
+    
+    def loss_already_computed(self):
         for loss_vals in self.loss_vals_all.values():
             if loss_vals is None:
-                self.compute_loss_of_iterates()
-                break
+                return False
+        return True
+    
+    def best_loss_val(self):
+        if not self.loss_already_computed():
+            self.compute_loss_of_iterates()
+        return np.min([np.min(loss_vals) for loss_vals in self.loss_vals_all.values()])
+    
+    def convert_its_to_epochs(self, batch_size=1):
+        if self.its_converted_to_epochs:
+            return
+        for seed, its in self.its_all.items():
+            self.its_all[seed] = np.asarray(its) * batch_size / self.loss.n
+        self.its_converted_to_epochs = True
+                
+          
+    def plot_losses(self, f_opt=None, log_std=True, markevery=None, alpha=0.3, *args, **kwargs):
+        if not self.loss_already_computed():
+            self.compute_loss_of_iterates()
         if f_opt is None:
-            f_opt = np.min([np.min(loss_vals) for self.loss_vals_all.values()])
-        if markevery is None:
-            markevery = max(1, len(self.loss_vals)//20)
-            
+            f_opt = self.best_loss_val()
+        it_ave = np.mean([np.asarray(its) for its in self.its_all.values()], axis=0)
         if log_std:
             y = [np.log(loss_vals-f_opt) for loss_vals in self.loss_vals_all.values()]
+            y_ave = np.mean(y, axis=0)
+            y_std = np.std(y, axis=0)
+            upper, lower = np.exp(y_ave + y_std), np.exp(y_ave - y_std)
+            y_ave = np.exp(y_ave)
         else:
             y = [loss_vals-f_opt for loss_vals in self.loss_vals_all.values()]
-        y_ave = np.mean(y, axis=0)
-        y_std = np.std(y, axis=0)
+            y_ave = np.mean(y, axis=0)
+            y_std = np.std(y, axis=0)
+            upper, lower = y_ave + y_std, y_ave - y_std
+        if markevery is None:
+            markevery = max(1, len(y_ave)//20)
             
-        plt.plot(self.its, y_ave, markevery=markevery, *args, **kwargs)
-        plt.fill_between(self.its, y_ave + y_std, y_ave - y_std, alpha=alpha, *args, **kwargs)
-        plt.ylabel(r'$f(x)-f^*')
+        plt.plot(it_ave, y_ave, markevery=markevery, *args, **kwargs)
+        if len(self.loss_vals_all.keys()) > 1:
+            plt.fill_between(it_ave, upper, lower, alpha=alpha, *args, **kwargs)
+        plt.ylabel(r'$f(x)-f^*$')
         
     def plot_distances(self, x_opt=None, log_std=True, markevery=None, alpha=0.3, *args, **kwargs):
         if x_opt is None:
-            if self.loss_vals_all.values()[0] is None:
-                x_opt = self.xs[-1]
-            else:
+            if self.loss_already_computed():
                 f_opt = np.inf
                 for seed, loss_vals in self.loss_vals_all.items():
                     i_min = np.argmin(loss_vals)
                     if loss_vals[i_min] < f_opt:
                         f_opt = loss_vals[i_min]
                         x_opt = self.xs_all[seed][i_min]
+                else:
+                    x_opt = self.xs[-1]
         
-        if markevery is None:
-            markevery = max(1, len(self.xs)//20)
+        it_ave = np.mean([np.asarray(its) for its in self.its_all.values()], axis=0)
         if log_std:
-            y = [np.log(la.norm(xs-x_opt, axis=1)) for xs in self.loss_xs_all.values()]
+            y = [np.log(la.norm(xs-x_opt, axis=1)**2) for xs in self.xs_all.values()]
             y_ave = np.exp(np.mean(y, axis=0))
             y_std = np.exp(np.std(y, axis=0))
         else:
-            y = [la.norm(xs-x_opt, axis=1) for xs in self.loss_xs_all.values()]
+            y = [la.norm(xs-x_opt, axis=1)**2 for xs in self.xs_all.values()]
             y_ave = np.mean(y, axis=0)
             y_std = np.std(y, axis=0)
+        if markevery is None:
+            markevery = max(1, len(y_ave)//20)
             
-        plt.plot(self.its, y_ave, markevery=markevery, *args, **kwargs)
-        plt.fill_between(self.its, y_ave + y_std, y_ave - y_std, alpha=alpha, *args, **kwargs)
-        plt.ylabel(r'\lvert x-x^*\rvert')
+        plt.plot(it_ave, y_ave, markevery=markevery, *args, **kwargs)
+        if len(self.loss_vals_all.keys()) > 1:
+            plt.fill_between(it_ave, y_ave + y_std, y_ave - y_std, alpha=alpha, *args, **kwargs)
+        plt.ylabel(r'$\Vert x-x^*\Vert^2$')

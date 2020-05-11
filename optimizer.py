@@ -28,10 +28,6 @@ class Optimizer:
         if not self.initialized:
             self.init_run(x0)
             self.initialized = True
-        else:
-            self.ts = list(self.ts)
-            self.its = list(self.its)
-            self.xs = list(self.xs)
         
         while not self.check_convergence():
             self.x_old = self.x.copy()
@@ -44,7 +40,7 @@ class Optimizer:
     def check_convergence(self):
         no_it_left = self.it >= self.it_max
         no_time_left = time.time()-self.t_start >= self.t_max
-        tolerance_met = self.x_old is not None and la.norm(self.x-self.x_old) <= self.tolerance
+        tolerance_met = self.x_old is not None and la.norm(self.x-self.x_old) < self.tolerance
         return no_it_left or no_time_left or tolerance_met
         
     def step(self):
@@ -84,10 +80,10 @@ class StochasticOptimizer(Optimizer):
     Has the same methods and, in addition, uses
     multiple seeds to run the experiments
     """
-    def __init__(self, n_seeds=1, seeds=None, *args, **kwargs):
-        super(StochasticOptimizer, self).__init__(*args, **kwargs)
+    def __init__(self, loss, n_seeds=1, seeds=None, *args, **kwargs):
+        super(StochasticOptimizer, self).__init__(loss=loss, *args, **kwargs)
         self.seeds = seeds if seeds else np.arange(n_seeds)
-        self.trace = StochasticTrace()
+        self.trace = StochasticTrace(loss=loss)
     
     def run(self, *args, **kwargs):
         for seed in self.seeds:
@@ -96,40 +92,4 @@ class StochasticOptimizer(Optimizer):
             super(StochasticOptimizer, self).run(*args, **kwargs)
             self.trace.append_seed_results(seed)
             self.initialized = False
-        
-    def check_convergence(self):
-        no_it_left = self.it >= self.it_max
-        no_time_left = time.time()-self.t_start >= self.t_max
-        tolerance_met = self.x_old is not None and la.norm(self.x-self.x_old) <= self.tolerance
-        return no_it_left or no_time_left or tolerance_met
-        
-    def step(self):
-        pass
-            
-    def init_run(self, x0):
-        self.dim = len(x0)
-        self.x = x0.copy()
-        self.xs = [x0.copy()]
-        self.its = [0]
-        self.ts = [0]
-        self.it = 0
-        self.t = 0
-        self.t_start = time.time()
-        self.time_progress = 0
-        self.iterations_progress = 0
-        self.max_progress = 0
-        self.losses = None
-        
-    def save_checkpoint(self, first_iterations=10):
-        self.it += 1
-        self.t = time.time() - self.t_start
-        self.time_progress = int((self.trace_len-first_iterations) * self.t / self.t_max)
-        self.iterations_progress = int((self.trace_len-first_iterations) * (self.it / self.it_max))
-        if (max(self.time_progress, self.iterations_progress) > self.max_progress) or (self.it <= first_iterations):
-            self.update_trace()
-        self.max_progress = max(self.time_progress, self.iterations_progress)
-        
-    def update_trace(self):
-        self.xs.append(self.x.copy())
-        self.ts.append(self.t)
-        self.its.append(self.it)
+        return self.trace

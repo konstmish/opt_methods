@@ -67,7 +67,17 @@ class LogisticRegression(Oracle):
         activation = scipy.special.expit(z)
         weights = activation * (1-activation)
         A_weighted = safe_sparse_multiply(self.A.T, weights)
-        return A_weighted@self.A + l2*np.eye(len(w))
+        return A_weighted@self.A/self.n + self.l2*np.eye(self.dim)
+    
+    def stochastic_gradient(self, x, idx=None, batch_size=1):
+        if idx is None:
+            idx = np.random.choice(self.n, size=batch_size)
+        z = self.A[idx] @ x
+        if scipy.sparse.issparse(z):
+            z = z.toarray()
+        activation = scipy.special.expit(z)        
+        stoch_grad = safe_sparse_add(self.A[idx].T@(activation-self.b[idx])/batch_size, self.l2*x)
+        return stoch_grad
     
     def mat_vec_product(self, x):
         if not self.store_mat_vec_prod or safe_sparse_norm(x-self.x_last) != 0:
