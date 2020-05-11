@@ -69,14 +69,14 @@ class LogisticRegression(Oracle):
         A_weighted = safe_sparse_multiply(self.A.T, weights)
         return A_weighted@self.A/self.n + self.l2*np.eye(self.dim)
     
-    def stochastic_gradient(self, x, idx=None, batch_size=1):
+    def stochastic_gradient(self, x, idx=None, batch_size=1, replace=False):
         if idx is None:
-            idx = np.random.choice(self.n, size=batch_size)
+            idx = np.random.choice(self.n, size=batch_size, replace=replace)
         z = self.A[idx] @ x
         if scipy.sparse.issparse(z):
             z = z.toarray()
         activation = scipy.special.expit(z)        
-        stoch_grad = safe_sparse_add(self.A[idx].T@(activation-self.b[idx])/batch_size, self.l2*x)
+        stoch_grad = safe_sparse_add(self.A[idx].T@(activation-self.b[idx])/len(idx), self.l2*x)
         return stoch_grad
     
     def mat_vec_product(self, x):
@@ -95,9 +95,9 @@ class LogisticRegression(Oracle):
         return 0.25*np.max(la.eigvalsh(covariance)) + self.l2
     
     def max_smoothness(self):
-        max_squared_sum = row_norms(self.A).max()
+        max_squared_sum = row_norms(self.A, squared=True).max()
         return 0.25*max_squared_sum + self.l2
     
     def average_smoothness(self):
-        ave_squared_sum = row_norms(self.A).mean()
+        ave_squared_sum = row_norms(self.A, squared=True).mean()
         return 0.25*ave_squared_sum + self.l2
