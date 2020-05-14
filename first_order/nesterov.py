@@ -1,3 +1,5 @@
+import numpy as np
+
 from optimizer import Optimizer
 
 
@@ -16,11 +18,9 @@ class Nesterov(Optimizer):
         if strongly_convex and mu == 0:
             raise ValueError("""Mu must be larger than 0 for strongly_convex=True,
                              invalid value: {}""".format(mu))
-        if strongly_convex:
-            self.mu = mu
-            kappa = (1/self.lr)/self.mu
-            self.momentum = (np.sqrt(kappa)-1) / (np.sqrt(kappa)+1)
         self.strongly_convex = strongly_convex
+        if self.strongly_convex:
+            self.mu = mu
         
     def step(self):
         if not self.strongly_convex:
@@ -30,11 +30,15 @@ class Nesterov(Optimizer):
         self.x_nest_old = self.x_nest.copy()
         self.grad = self.loss.gradient(self.x)
         self.x_nest = self.x - self.lr*self.grad
-        self.x = self.x_nest + momentum*(self.x_nest-self.x_nest_old)
+        self.x = self.x_nest + self.momentum*(self.x_nest-self.x_nest_old)
     
     def init_run(self, *args, **kwargs):
+        super(Nesterov, self).init_run(*args, **kwargs)
         if self.lr is None:
             self.lr = 1 / self.loss.smoothness()
-        super(Nesterov, self).init_run(*args, **kwargs)
         self.x_nest = self.x.copy()
-        self.alpha = 1.
+        if self.strongly_convex:
+            kappa = (1/self.lr)/self.mu
+            self.momentum = (np.sqrt(kappa)-1) / (np.sqrt(kappa)+1)
+        else:
+            self.alpha = 1.

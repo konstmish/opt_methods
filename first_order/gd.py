@@ -17,6 +17,6 @@ class Gd(Optimizer):
         self.x -= self.lr * self.grad
     
     def init_run(self, *args, **kwargs):
+        super(Gd, self).init_run(*args, **kwargs)
         if self.lr is None:
             self.lr = 1 / self.loss.smoothness()
-        super(Gd, self).init_run(*args, **kwargs)
