@@ -1,7 +1,9 @@
 import numpy as np
 import numpy.linalg as la
+import scipy
 import time
 
+from loss_functions import safe_sparse_norm
 from opt_trace import Trace, StochasticTrace
 from utils import set_seed
 
@@ -30,24 +32,28 @@ class Optimizer:
             self.initialized = True
         
         while not self.check_convergence():
-            self.x_old = self.x.copy()
+            if self.tolerance > 0:
+                self.x_old = self.x.copy()
             self.step()
             self.save_checkpoint()
-            assert np.isfinite(self.x).all()
+            assert scipy.sparse.issparse(self.x) or np.isfinite(self.x).all()
 
         return self.trace
         
     def check_convergence(self):
         no_it_left = self.it >= self.it_max
         no_time_left = time.time()-self.t_start >= self.t_max
-        tolerance_met = self.x_old is not None and la.norm(self.x-self.x_old) < self.tolerance
+        if self.tolerance > 0:
+            tolerance_met = self.x_old is not None and safe_sparse_norm(self.x-self.x_old) < self.tolerance
+        else:
+            tolerance_met = False
         return no_it_left or no_time_left or tolerance_met
         
     def step(self):
         pass
             
     def init_run(self, x0):
-        self.dim = len(x0)
+        self.dim = x0.shape[0]
         self.x = x0.copy()
         self.trace.xs = [x0.copy()]
         self.trace.its = [0]

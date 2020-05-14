@@ -118,7 +118,7 @@ class StochasticTrace:
             
         plt.plot(it_ave, y_ave, markevery=markevery, *args, **kwargs)
         if len(self.loss_vals_all.keys()) > 1:
-            plt.fill_between(it_ave, upper, lower, alpha=alpha, *args, **kwargs)
+            plt.fill_between(it_ave, upper, lower, alpha=alpha)
         plt.ylabel(r'$f(x)-f^*$')
         
     def plot_distances(self, x_opt=None, log_std=True, markevery=None, alpha=0.3, *args, **kwargs):
@@ -147,5 +147,5 @@ class StochasticTrace:
             
         plt.plot(it_ave, y_ave, markevery=markevery, *args, **kwargs)
         if len(self.loss_vals_all.keys()) > 1:
-            plt.fill_between(it_ave, y_ave + y_std, y_ave - y_std, alpha=alpha, *args, **kwargs)
+            plt.fill_between(it_ave, y_ave + y_std, y_ave - y_std, alpha=alpha)
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
