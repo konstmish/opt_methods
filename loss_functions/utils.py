@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 
+
 def safe_sparse_add(a, b):
     if scipy.sparse.issparse(a) and scipy.sparse.issparse(b):
         # both are sparse, keep the result sparse

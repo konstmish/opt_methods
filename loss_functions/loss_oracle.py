@@ -21,6 +21,9 @@ class Oracle():
     def hessian(self, x):
         pass
     
+    def norm(self, x):
+        pass
+    
     def smoothness(self):
         pass
     
@@ -29,10 +32,3 @@ class Oracle():
     
     def average_smoothness(self):
         pass
-    
-    def density(self, x):
-        if hasattr(x, "toarray"):
-            dty = float(x.nnz) / (x.shape[0]*x.shape[1])
-        else:
-            dty = 0 if x is None else float((x!=0).sum()) / x.size
-        return dty
