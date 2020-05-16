@@ -94,8 +94,7 @@ class StochasticTrace:
         for seed, its in self.its_all.items():
             self.its_all[seed] = np.asarray(its) * batch_size / self.loss.n
         self.its_converted_to_epochs = True
-                
-          
+        
     def plot_losses(self, f_opt=None, log_std=True, markevery=None, alpha=0.3, *args, **kwargs):
         if not self.loss_already_computed():
             self.compute_loss_of_iterates()
