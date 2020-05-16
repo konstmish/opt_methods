@@ -2,12 +2,12 @@
 ### Benchmarking optimization methods on convex problems.
 ## Structure
 ### First order
-Standard methods: Gradient Descent (GD), Mirror Descent, Nesterov's acceleration.
-Adaptive methods: Adagrad, AdGD, accelerated AdGD, Barzilai-Borwein, Polyak.
+Standard methods: Gradient Descent (GD), Incremental Gradient (IG), Mirror Descent (MD), Nesterov's acceleration (Nesterov).
+Adaptive methods: Adagrad, AdGD, Accelerated AdGD (AdgdAccel), Polyak.
 ### Second order
 Standard methods: Newton.
 Stochastic methods: Stochastic Newton, Stochastic Cubic Regularization.
 ### Stochastic first order
 Methods: SGD, RR.
 ### Notebooks
-Examples of running the methods on convex problems.
+Examples of running the methods on convex problems: linear regression, logistic regression, entropy minimization.
