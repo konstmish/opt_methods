@@ -32,3 +32,8 @@ class Adgd(Optimizer):
     
     def init_run(self, *args, **kwargs):
         super(Adgd, self).init_run(*args, **kwargs)
+        self.trace.lrs = [self.lr]
+        
+    def update_trace(self):
+        super(Adgd, self).update_trace()
+        self.trace.lrs.append(self.lr)
