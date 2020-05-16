@@ -7,8 +7,6 @@ from sklearn.utils.extmath import row_norms, safe_sparse_dot
 from .loss_oracle import Oracle
 from .utils import safe_sparse_add, safe_sparse_multiply, safe_sparse_norm
 
-MAX_SMOOTHNESS_DIM = 1000
-
 
 def logsig(x):
     """
@@ -46,8 +44,8 @@ class LogisticRegression(Oracle):
             self.b = b
         self.n, self.dim = A.shape
         self.store_mat_vec_prod = store_mat_vec_prod
-        self.x_last = 0#np.zeros(self.dim)
-        self.mat_vec_prod = 0#np.zeros(self.n)
+        self.x_last = 0.
+        self.mat_vec_prod = np.zeros(self.n)
     
     def value(self, x):
         z = self.mat_vec_product(x)
@@ -72,9 +70,13 @@ class LogisticRegression(Oracle):
     def stochastic_gradient(self, x, idx=None, batch_size=1, replace=False):
         if idx is None:
             idx = np.random.choice(self.n, size=batch_size, replace=replace)
-        z = self.mat_vec_product(x)
-        activation = scipy.special.expit(z)        
+        z = self.A[idx] @ x
+        if scipy.sparse.issparse(z):
+            z = z.toarray().ravel()
+        activation = scipy.special.expit(z)
         stoch_grad = safe_sparse_add(self.A[idx].T@(activation-self.b[idx])/len(idx), self.l2*x)
+        if scipy.sparse.issparse(x):
+            stoch_grad = scipy.sparse.csr_matrix(stoch_grad).T
         return stoch_grad
     
     def mat_vec_product(self, x):
@@ -91,20 +93,13 @@ class LogisticRegression(Oracle):
     def norm(self, x):
         return safe_sparse_norm(x)
         
-    def smoothness(self, use_eigen_if_large=False):
-        if self.dim < MAX_SMOOTHNESS_DIM or use_eigen_if_large:
-            covariance = self.A.T@self.A/self.n
-            if scipy.sparse.issparse(covariance):
-                covariance = covariance.toarray()
-            return 0.25*np.max(la.eigvalsh(covariance)) + self.l2
+    def smoothness(self):
+        if scipy.sparse.issparse(self.A):
+            sing_val_max = scipy.sparse.linalg.svds(self.A, k=1, return_singular_vectors=False)[0]
+            return 0.25*sing_val_max**2/self.n + self.l2
         else:
-            print(
-            """The dimension is {}, which might be too large 
-            for computing the largest eigenvalue of
-            the covariance matrix, so an estimate is returned.
-            Set use_eigen_if_large=True to compute anyway """.format(self.dim)
-            )
-            return self.average_smoothness()
+            covariance = self.A.T@self.A/self.n
+            return 0.25*np.max(la.eigvalsh(covariance)) + self.l2
     
     def max_smoothness(self):
         max_squared_sum = row_norms(self.A, squared=True).max()
