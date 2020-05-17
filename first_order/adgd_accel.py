@@ -5,7 +5,9 @@ from optimizer import Optimizer
 
 class AdgdAccel(Optimizer):
     """
-    Gradient descent with constant learning rate.
+    Accelerated gradient descent with adaptive stepsize and momentum estimation
+    using local values of smoothness (gradient Lipschitzness) and strong convexity.
+    Momentum is used as given by Nesterov's acceleration.
     
     Arguments:
         lr (float, optional): an estimate of the inverse smoothness constant

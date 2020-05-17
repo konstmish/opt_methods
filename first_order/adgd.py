@@ -5,7 +5,8 @@ from optimizer import Optimizer
 
 class Adgd(Optimizer):
     """
-    Gradient descent with constant learning rate.
+    Gradient descent with adaptive stepsize estimation
+    using local values of smoothness (gradient Lipschitzness).
     
     Arguments:
         lr (float, optional): an estimate of the inverse smoothness constant
