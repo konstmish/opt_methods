@@ -5,7 +5,7 @@ from optimizer import StochasticOptimizer
 
 class Shuffling(StochasticOptimizer):
     """
-    Gradient descent with constant learning rate.
+    Shuffling-based stochastic gradient descent with decreasing or constant learning rate.
     
     Arguments:
         lr (float, optional): an estimate of the inverse smoothness constant
@@ -35,6 +35,6 @@ class Shuffling(StochasticOptimizer):
         self.x -= self.lr * self.grad
     
     def init_run(self, *args, **kwargs):
+        super(Shuffling, self).init_run(*args, **kwargs)
         if self.lr0 is None:
             self.lr0 = 1 / self.loss.max_smoothness()
-        super(Shuffling, self).init_run(*args, **kwargs)
