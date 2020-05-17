@@ -5,7 +5,8 @@ from optimizer import Optimizer
 
 class Nesterov(Optimizer):
     """
-    Gradient descent with constant learning rate.
+    Accelerated gradient descent with constant learning rate.
+    For details, see, e.g., http://mpawankumar.info/teaching/cdt-big-data/nesterov83.pdf
     
     Arguments:
         lr (float, optional): an estimate of the inverse smoothness constant
