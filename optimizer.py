@@ -13,7 +13,7 @@ class Optimizer:
     Base class for optimization algorithms. Provides methods to run them,
     save the trace and plot the results.
     """
-    def __init__(self, loss, t_max=np.inf, it_max=np.inf, trace_len=500, tolerance=0):
+    def __init__(self, loss, t_max=np.inf, it_max=np.inf, trace_len=200, tolerance=0):
         if t_max is np.inf and it_max is np.inf:
             it_max = 100
             print('The number of iterations is set to 100.')
@@ -83,8 +83,8 @@ class Optimizer:
 class StochasticOptimizer(Optimizer):
     """
     Base class for stochastic optimization algorithms. 
-    Has the same methods and, in addition, uses
-    multiple seeds to run the experiments
+    The class has the same methods as Optimizer and, in addition, uses
+    multiple seeds to run the experiments.
     """
     def __init__(self, loss, n_seeds=1, seeds=None, *args, **kwargs):
         super(StochasticOptimizer, self).__init__(loss=loss, *args, **kwargs)
