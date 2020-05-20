@@ -24,8 +24,11 @@ class Ig(Optimizer):
         self.i += self.batch_size
         self.i %= self.loss.n
         self.grad = self.loss.stochastic_gradient(self.x, idx=idx)
-        self.lr = self.lr0 / (1+self.lr_decay_coef*(self.it+1)**self.lr_decay_power)
-        self.lr = min(self.lr, self.lr_max)
+        denom_const = 1 / self.lr0
+        lr_decayed = 1 / (denom_const + self.lr_decay_coef*(self.it+1)**self.lr_decay_power)
+        if lr_decayed < 0:
+            lr_decayed = np.inf
+        self.lr = min(lr_decayed, self.lr_max)
         self.x -= self.lr * self.grad
     
     def init_run(self, *args, **kwargs):
