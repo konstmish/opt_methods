@@ -115,7 +115,7 @@ class StochasticTrace:
             self.its_all[seed] = np.asarray(its) / its_per_epoch
         self.its_converted_to_epochs = True
         
-    def plot_losses(self, f_opt=None, log_std=True, markevery=None, alpha=0.3, *args, **kwargs):
+    def plot_losses(self, f_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
         if not self.loss_is_computed:
             self.compute_loss_of_iterates()
         if f_opt is None:
@@ -140,7 +140,7 @@ class StochasticTrace:
             plt.fill_between(it_ave, upper, lower, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$f(x)-f^*$')
         
-    def plot_distances(self, x_opt=None, log_std=True, markevery=None, alpha=0.3, *args, **kwargs):
+    def plot_distances(self, x_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
         if x_opt is None:
             if self.loss_is_computed:
                 f_opt = np.inf
