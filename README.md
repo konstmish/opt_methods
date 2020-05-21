@@ -2,7 +2,7 @@
 ### Benchmarking optimization methods on convex problems.
 ## Structure
 ### First order
-Standard methods: Gradient Descent (GD), Incremental Gradient (IG), Mirror Descent (MD), Nesterov's acceleration (Nesterov).
+Standard methods: Gradient Descent (GD), Polyak's Heavy-ball, Incremental Gradient (IG), Mirror Descent (MD), Nesterov's acceleration (Nesterov).
 Adaptive methods: Adagrad, AdGD, Accelerated AdGD (AdgdAccel), Polyak.
 ### Second order
 Standard methods: Newton.
