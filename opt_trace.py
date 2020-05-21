@@ -1,6 +1,8 @@
 import numpy as np
 import numpy.linalg as la
 import matplotlib.pyplot as plt
+from pathlib import Path
+import pickle
 
 from loss_functions import safe_sparse_norm
 
@@ -62,10 +64,13 @@ class Trace:
         return np.min(self.loss_vals)
         
     def save(self, file_name, path='./results/'):
-        import pickle
-        f = open(path + file_name, 'w')
+        # To make the dumped file smaller, remove the loss
+        self.loss = None
+        Path(path).mkdir(parents=True, exist_ok=True)
+        f = open(path + file_name, 'wb')
         pickle.dump(self, f)
-
+        f.close()
+        
         
 class StochasticTrace:
     """
@@ -172,3 +177,10 @@ class StochasticTrace:
         if len(self.loss_vals_all.keys()) > 1:
             plt.fill_between(it_ave, upper, lower, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
+        
+    def save(self, file_name, path='./results/'):
+        self.loss = None
+        Path(path).mkdir(parents=True, exist_ok=True)
+        f = open(path + file_name, 'wb')
+        pickle.dump(self, f)
+        f.close()
