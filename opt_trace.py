@@ -31,8 +31,7 @@ class Trace:
         its_per_epoch = self.loss.n / batch_size
         if self.its_converted_to_epochs:
             return
-        for seed, its in self.its_all.items():
-            self.its_all[seed] = np.asarray(its) / its_per_epoch
+        self.its = np.asarray(self.its) / its_per_epoch
         self.its_converted_to_epochs = True
           
     def plot_losses(self, f_opt=None, markevery=None, *args, **kwargs):
