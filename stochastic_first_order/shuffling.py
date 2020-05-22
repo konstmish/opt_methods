@@ -40,4 +40,4 @@ class Shuffling(StochasticOptimizer):
     def init_run(self, *args, **kwargs):
         super(Shuffling, self).init_run(*args, **kwargs)
         if self.lr0 is None:
-            self.lr0 = 1 / self.loss.max_smoothness()
+            self.lr0 = 1 / self.loss.batch_smoothness()

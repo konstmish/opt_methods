@@ -34,5 +34,5 @@ class Ig(Optimizer):
     def init_run(self, *args, **kwargs):
         super(Ig, self).init_run(*args, **kwargs)
         if self.lr0 is None:
-            self.lr0 = 1 / self.loss.max_smoothness()
+            self.lr0 = 1 / self.loss.batch_smoothness()
         self.i = 0
