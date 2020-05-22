@@ -52,6 +52,16 @@ class LogisticRegression(Oracle):
         regularization = self.l1*safe_sparse_norm(x, ord=1) + self.l2/2*safe_sparse_norm(x)**2
         return np.mean(safe_sparse_multiply(1-self.b, z)-logsig(z)) + regularization
     
+    def partial_value(self, x, idx, include_reg=True):
+        batch_size = 1 if np.isscalar(idx) else len(idx)
+        z = self.A[idx] @ x
+        if scipy.sparse.issparse(z):
+            z = z.toarray().ravel()
+        regularization = 0
+        if include_reg:
+            regularization = self.l1*safe_sparse_norm(x, ord=1) + self.l2/2*safe_sparse_norm(x)**2
+        return np.mean(safe_sparse_multiply(1-self.b[idx], z)-logsig(z)) + regularization
+    
     def gradient(self, x):
         z = self.mat_vec_product(x)
         activation = scipy.special.expit(z)
@@ -70,11 +80,13 @@ class LogisticRegression(Oracle):
     def stochastic_gradient(self, x, idx=None, batch_size=1, replace=False):
         if idx is None:
             idx = np.random.choice(self.n, size=batch_size, replace=replace)
+        else:
+            batch_size = 1 if np.isscalar(idx) else len(idx)
         z = self.A[idx] @ x
         if scipy.sparse.issparse(z):
             z = z.toarray().ravel()
         activation = scipy.special.expit(z)
-        stoch_grad = safe_sparse_add(self.A[idx].T@(activation-self.b[idx])/len(idx), self.l2*x)
+        stoch_grad = safe_sparse_add(self.A[idx].T@(activation-self.b[idx])/batch_size, self.l2*x)
         if scipy.sparse.issparse(x):
             stoch_grad = scipy.sparse.csr_matrix(stoch_grad).T
         return stoch_grad
@@ -108,6 +120,14 @@ class LogisticRegression(Oracle):
     def average_smoothness(self):
         ave_squared_sum = row_norms(self.A, squared=True).mean()
         return 0.25*ave_squared_sum + self.l2
+    
+    def batch_smoothness(self, batch_size):
+        """Smoothness constant if stochastic gradients 
+        are sampled in minibatches is used"""
+        L = self.smoothness()
+        L_max = self.max_smoothness()
+        L_batch = self.n / (self.n-1) * (1-1/batch_size) * L + (self.n/batch_size-1) / (self.n-1) * L_max
+        return L_batch
     
     def density(self, x):
         if hasattr(x, "toarray"):

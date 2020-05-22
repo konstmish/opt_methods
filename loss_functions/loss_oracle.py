@@ -32,3 +32,6 @@ class Oracle():
     
     def average_smoothness(self):
         pass
+
+    def batch_smoothness(self, batch_size):
+        pass
