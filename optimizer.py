@@ -88,7 +88,10 @@ class StochasticOptimizer(Optimizer):
     """
     def __init__(self, loss, n_seeds=1, seeds=None, *args, **kwargs):
         super(StochasticOptimizer, self).__init__(loss=loss, *args, **kwargs)
-        self.seeds = seeds if seeds else np.arange(n_seeds)
+        self.seeds = seeds
+        if not seeds:
+            np.random.seed(42)
+            self.seeds = [np.random.randint(100000) for _ in range(n_seeds)]
         self.trace = StochasticTrace(loss=loss)
     
     def run(self, *args, **kwargs):
