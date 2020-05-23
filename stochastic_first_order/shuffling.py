@@ -34,8 +34,6 @@ class Shuffling(StochasticOptimizer):
         idx = self.permutation[idx_perm]
         self.i += self.batch_size
         self.i %= self.loss.n
-#         if self.i >= self.loss.n:
-#             self.i = 0
         self.grad = self.loss.stochastic_gradient(self.x, idx=idx)
         denom_const = 1 / self.lr0
         lr_decayed = 1 / (denom_const + self.lr_decay_coef*max(0, self.it-self.it_start_decay)**self.lr_decay_power)
