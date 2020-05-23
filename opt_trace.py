@@ -117,6 +117,7 @@ class StochasticTrace:
             return
         for seed, its in self.its_all.items():
             self.its_all[seed] = np.asarray(its) / its_per_epoch
+        self.its = np.asarray(self.its) / its_per_epoch
         self.its_converted_to_epochs = True
         
     def plot_losses(self, f_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
@@ -126,11 +127,11 @@ class StochasticTrace:
             f_opt = self.best_loss_value()
         it_ave = np.mean([np.asarray(its) for its in self.its_all.values()], axis=0)
         if log_std:
-            y = [np.log(loss_vals-f_opt) for loss_vals in self.loss_vals_all.values()]
-            y_ave = np.mean(y, axis=0)
+            y_log = [np.log(loss_vals-f_opt) for loss_vals in self.loss_vals_all.values()]
+            y_log_ave = np.mean(y, axis=0)
             y_std = np.std(y, axis=0)
             upper, lower = np.exp(y_ave + y_std), np.exp(y_ave - y_std)
-            y_ave = np.exp(y_ave)
+            y_ave = np.exp(y_log_ave)
         else:
             y = [loss_vals-f_opt for loss_vals in self.loss_vals_all.values()]
             y_ave = np.mean(y, axis=0)
