@@ -12,7 +12,7 @@ class Svrg(StochasticOptimizer):
     Arguments:
         lr (float, optional): an estimate of the inverse smoothness constant
     """
-    def __init__(self, lr=None, batch_size=1, avoid_cache_miss=True, loopless=True,
+    def __init__(self, lr=None, batch_size=1, avoid_cache_miss=False, loopless=True,
                  loop_len=None, restart_prob=None, *args, **kwargs):
         super(Svrg, self).__init__(*args, **kwargs)
         self.lr = lr
@@ -21,12 +21,14 @@ class Svrg(StochasticOptimizer):
         self.loopless = loopless
         self.loop_len = loop_len
         self.restart_prob = restart_prob
-        if self.loopless and restart_prob is None:
-            self.restart_prob = 1 / self.loss.n
+        if loopless and restart_prob is None:
+            self.restart_prob = batch_size / self.loss.n
+        elif not loopless and loop_len is None:
+            self.loop_len = self.loss.n // batch_size
         
     def step(self):
         new_loop = self.loopless and np.random.uniform() < self.restart_prob
-        if not self.loopless and self.loop_it == loop_len:
+        if not self.loopless and self.loop_it == self.loop_len:
             new_loop = True
         if new_loop or self.it == 0:
             self.x_old = self.x.copy()
@@ -34,6 +36,7 @@ class Svrg(StochasticOptimizer):
             self.vr_grad = self.full_grad_old.copy()
             if not self.loopless:
                 self.loop_it = 0
+            self.loops += 1
         else:
             if self.avoid_cache_miss:
                 i = np.random.choice(self.loss.n)
@@ -50,5 +53,7 @@ class Svrg(StochasticOptimizer):
     
     def init_run(self, *args, **kwargs):
         super(Svrg, self).init_run(*args, **kwargs)
-        if self.lr0 is None:
-            self.lr0 = 1 / self.loss.batch_smoothness()
+        self.loop_it = 0
+        self.loops = 0
+        if self.lr is None:
+            self.lr = 0.5 / self.loss.batch_smoothness(self.batch_size)

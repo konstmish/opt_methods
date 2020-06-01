@@ -8,6 +8,6 @@ Adaptive methods: Adagrad, AdGD, Accelerated AdGD (AdgdAccel), Polyak.
 Standard methods: Newton.
 Stochastic methods: Stochastic Newton, Stochastic Cubic Regularization.
 ### Stochastic first order
-Methods: SGD, RR.
+Methods: SGD, SVRG, RR.
 ### Notebooks
 Examples of running the methods on convex problems: linear regression, logistic regression, entropy minimization.
