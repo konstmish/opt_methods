@@ -128,9 +128,9 @@ class StochasticTrace:
         it_ave = np.mean([np.asarray(its) for its in self.its_all.values()], axis=0)
         if log_std:
             y_log = [np.log(loss_vals-f_opt) for loss_vals in self.loss_vals_all.values()]
-            y_log_ave = np.mean(y, axis=0)
-            y_std = np.std(y, axis=0)
-            upper, lower = np.exp(y_ave + y_std), np.exp(y_ave - y_std)
+            y_log_ave = np.mean(y_log, axis=0)
+            y_log_std = np.std(y_log, axis=0)
+            upper, lower = np.exp(y_log_ave + y_log_std), np.exp(y_log_ave - y_log_std)
             y_ave = np.exp(y_log_ave)
         else:
             y = [loss_vals-f_opt for loss_vals in self.loss_vals_all.values()]
@@ -160,11 +160,11 @@ class StochasticTrace:
         it_ave = np.mean([np.asarray(its) for its in self.its_all.values()], axis=0)
         dists = [np.asarray([safe_sparse_norm(x-x_opt)**2 for x in xs]) for xs in self.xs_all.values()]
         if log_std:
-            y = [np.log(dist) for dist in dists]
-            y_ave = np.mean(y, axis=0)
-            y_std = np.std(y, axis=0)
-            upper, lower = np.exp(y_ave + y_std), np.exp(y_ave - y_std)
-            y_ave = np.exp(y_ave)
+            y_log = [np.log(dist) for dist in dists]
+            y_log_ave = np.mean(y_log, axis=0)
+            y_log_std = np.std(y_log, axis=0)
+            upper, lower = np.exp(y_log_ave + y_log_std), np.exp(y_log_ave - y_log_std)
+            y_ave = np.exp(y_log_ave)
         else:
             y = dists
             y_ave = np.mean(y, axis=0)
