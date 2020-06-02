@@ -33,18 +33,20 @@ class Shuffling(StochasticOptimizer):
         if self.steps_per_permutation is np.inf:
             idx_perm = np.arange(self.i, self.i + self.batch_size)
             idx_perm %= self.loss.n
-            batch_scaling = 1
+            normalization = self.batch_size
         else:
             idx_perm = np.arange(self.i, min(self.loss.n, self.i+self.batch_size))
-            batch_scaling = len(idx_perm) / self.batch_size  # Remove bias of the last batch in the current permutation
+            normalization = self.loss.n / self.steps_per_permutation #works only for RR
         idx = self.permutation[idx_perm]
         self.i += self.batch_size
         self.i %= self.loss.n
-        self.grad = self.loss.stochastic_gradient(self.x, idx=idx)
+        # since the objective is 1/n sum_{i=1}^n f_i(x) + l2/2*||x||^2
+        # any incomplete minibatch should be normalized by batch_size
+        self.grad = self.loss.stochastic_gradient(self.x, idx=idx, normalization=normalization)
         denom_const = 1 / self.lr0
         lr_decayed = 1 / (denom_const + self.lr_decay_coef*max(0, self.it-self.it_start_decay)**self.lr_decay_power)
         self.lr = min(lr_decayed, self.lr_max)
-        self.x -= self.lr * batch_scaling * self.grad
+        self.x -= self.lr * self.grad
     
     def init_run(self, *args, **kwargs):
         super(Shuffling, self).init_run(*args, **kwargs)
