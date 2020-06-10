@@ -41,4 +41,4 @@ class Sgd(StochasticOptimizer):
     def init_run(self, *args, **kwargs):
         super(Sgd, self).init_run(*args, **kwargs)
         if self.lr0 is None:
-            self.lr0 = 1 / self.loss.batch_smoothness()
+            self.lr0 = 1 / self.loss.batch_smoothness(batch_size)
