@@ -1,3 +1,5 @@
+import numpy as np
+
 from optimizer import Optimizer
 
 
@@ -14,7 +16,9 @@ class Bfgs(Optimizer):
     def __init__(self, L=None, hess_estim=None, lr=1, line_search=False, ls_backtrack=0.5, ls_it_max=100, *args, **kwargs):
         super(Bfgs, self).__init__(*args, **kwargs)
         if L is None and hess_estim is None:
-            raise ValueError("Either smoothness consatnt L or Hessian estimate must be provided")
+            L = self.loss.smoothness()
+            if L is None:
+                raise ValueError("Either smoothness constant L or Hessian estimate must be provided")
         self.lr = lr
         self.L = L
         self.B = hess_estim
@@ -28,7 +32,7 @@ class Bfgs(Optimizer):
         if self.line_search:
             lr = min(1., self.lrs[-1] / self.ls_backtrack if len(self.lrs) > 0 else .1)
             for i in range(self.ls_it_max):
-                f_new = self.loss_func(self.w + lr * (w_new - self.w))
+                f_new = self.loss.value(self.x + lr * (x_new - self.x))
                 if f_new < self.f:
                     break
                 lr *= self.ls_backtrack
@@ -39,7 +43,7 @@ class Bfgs(Optimizer):
         x_new = self.x + lr * (x_new - self.x)
         
         s = x_new - self.x
-        grad_new = self.grad_func(x_new)
+        grad_new = self.loss.gradient(x_new)
         y = grad_new - self.grad
         self.grad = grad_new
         Bs = self.B @ s
@@ -53,10 +57,12 @@ class Bfgs(Optimizer):
     
     def init_run(self, *args, **kwargs):
         super(Bfgs, self).init_run(*args, **kwargs)
-        if not self.B:
+        if self.B is None:
             self.B = self.L * np.eye(self.loss.dim)
-        self.B_inv = 1 / self.L * np.eye(len(self.w))
-        self.grad = self.grad_func(self.w)
+            self.B_inv = 1 / self.L * np.eye(self.loss.dim)
+        else:
+            self.B_inv = np.linalg.pinv(self.B)
+        self.grad = self.loss.gradient(self.x)
         if self.line_search:
-            self.f = self.loss_func(self.w)
+            self.f = self.loss.value(self.x)
             self.lrs = []
