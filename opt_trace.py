@@ -1,10 +1,9 @@
 import numpy as np
 import numpy.linalg as la
 import matplotlib.pyplot as plt
+import os
 from pathlib import Path
 import pickle
-
-from loss_functions import safe_sparse_norm
 
 
 class Trace:
@@ -38,7 +37,7 @@ class Trace:
         if self.loss_vals is None:
             self.compute_loss_of_iterates()
         if f_opt is None:
-            f_opt = np.min(self.loss_vals)
+            f_opt = self.loss.f_opt
         if markevery is None:
             markevery = max(1, len(self.loss_vals)//20)
         plt.plot(self.its, self.loss_vals - f_opt, markevery=markevery, *args, **kwargs)
@@ -46,14 +45,13 @@ class Trace:
         
     def plot_distances(self, x_opt=None, markevery=None, *args, **kwargs):
         if x_opt is None:
-            if self.loss_vals is None:
+            if self.loss.x_opt is None:
                 x_opt = self.xs[-1]
             else:
-                i_min = np.argmin(self.loss_vals)
-                x_opt = self.xs[i_min]
+                x_opt = self.loss.x_opt
         if markevery is None:
             markevery = max(1, len(self.xs)//20)
-        dists = [safe_sparse_norm(x-x_opt)**2 for x in self.xs]
+        dists = [self.loss.norm(x-x_opt)**2 for x in self.xs]
         plt.plot(self.its, dists, markevery=markevery, *args, **kwargs)
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
         
@@ -64,17 +62,27 @@ class Trace:
         
     def save(self, file_name, path='./results/'):
         # To make the dumped file smaller, remove the loss
+        loss_ref_copy = self.loss
         self.loss = None
         Path(path).mkdir(parents=True, exist_ok=True)
-        f = open(path + file_name, 'wb')
-        pickle.dump(self, f)
-        f.close()
+        with open(path + file_name, 'wb') as f:
+            pickle.dump(self, f)
+        self.loss = loss_ref_copy
+        
+    @classmethod
+    def from_pickle(cls, path, loss):
+        if not os.path.isfile(path):
+            return None
+        with open(path, 'rb') as f:
+            trace = pickle.load(f)
+            trace.loss = loss
+        return trace
         
         
 class StochasticTrace:
     """
-    Class that stores the logs of running an optimization method
-    and plots the trajectory.
+    Class that stores the logs of running a stochastic
+    optimization method and plots the trajectory.
     """
     def __init__(self, loss):
         self.loss = loss
@@ -124,58 +132,53 @@ class StochasticTrace:
         if not self.loss_is_computed:
             self.compute_loss_of_iterates()
         if f_opt is None:
-            f_opt = self.best_loss_value()
+            f_opt = self.loss.f_opt
         it_ave = np.mean([np.asarray(its) for its in self.its_all.values()], axis=0)
         if log_std:
             y_log = [np.log(loss_vals-f_opt) for loss_vals in self.loss_vals_all.values()]
             y_log_ave = np.mean(y_log, axis=0)
             y_log_std = np.std(y_log, axis=0)
-            upper, lower = np.exp(y_log_ave + y_log_std), np.exp(y_log_ave - y_log_std)
+            lower, upper = np.exp(y_log_ave - y_log_std), np.exp(y_log_ave + y_log_std)
             y_ave = np.exp(y_log_ave)
         else:
             y = [loss_vals-f_opt for loss_vals in self.loss_vals_all.values()]
             y_ave = np.mean(y, axis=0)
             y_std = np.std(y, axis=0)
-            upper, lower = y_ave + y_std, y_ave - y_std
+            lower, upper = y_ave - y_std, y_ave + y_std
         if markevery is None:
             markevery = max(1, len(y_ave)//20)
             
         plot = plt.plot(it_ave, y_ave, markevery=markevery, *args, **kwargs)
         if len(self.loss_vals_all.keys()) > 1:
-            plt.fill_between(it_ave, upper, lower, alpha=alpha, color=plot[0].get_color())
+            plt.fill_between(it_ave, lower, upper, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$f(x)-f^*$')
         
     def plot_distances(self, x_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
         if x_opt is None:
-            if self.loss_is_computed:
-                f_opt = np.inf
-                for seed, loss_vals in self.loss_vals_all.items():
-                    i_min = np.argmin(loss_vals)
-                    if loss_vals[i_min] < f_opt:
-                        f_opt = loss_vals[i_min]
-                        x_opt = self.xs_all[seed][i_min]
-                else:
-                    x_opt = self.xs[-1]
+            if self.loss.x_opt is None:
+                x_opt = self.xs[-1]
+            else:
+                x_opt = self.loss.x_opt
         
         it_ave = np.mean([np.asarray(its) for its in self.its_all.values()], axis=0)
-        dists = [np.asarray([safe_sparse_norm(x-x_opt)**2 for x in xs]) for xs in self.xs_all.values()]
+        dists = [np.asarray([self.loss.norm(x-x_opt)**2 for x in xs]) for xs in self.xs_all.values()]
         if log_std:
             y_log = [np.log(dist) for dist in dists]
             y_log_ave = np.mean(y_log, axis=0)
             y_log_std = np.std(y_log, axis=0)
-            upper, lower = np.exp(y_log_ave + y_log_std), np.exp(y_log_ave - y_log_std)
+            lower, upper = np.exp(y_log_ave - y_log_std), np.exp(y_log_ave + y_log_std)
             y_ave = np.exp(y_log_ave)
         else:
             y = dists
             y_ave = np.mean(y, axis=0)
             y_std = np.std(y, axis=0)
-            upper, lower = y_ave + y_std, y_ave - y_std
+            lower, upper = y_ave - y_std, y_ave + y_std
         if markevery is None:
             markevery = max(1, len(y_ave)//20)
             
         plot = plt.plot(it_ave, y_ave, markevery=markevery, *args, **kwargs)
         if len(self.loss_vals_all.keys()) > 1:
-            plt.fill_between(it_ave, upper, lower, alpha=alpha, color=plot[0].get_color())
+            plt.fill_between(it_ave, lower, upper, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
         
     def save(self, file_name, path='./results/'):
@@ -184,3 +187,12 @@ class StochasticTrace:
         f = open(path + file_name, 'wb')
         pickle.dump(self, f)
         f.close()
+        
+    @classmethod
+    def from_pickle(cls, path, loss):
+        if not os.path.isfile(path):
+            return None
+        with open(path, 'rb') as f:
+            trace = pickle.load(f)
+            trace.loss = loss
+        return trace
