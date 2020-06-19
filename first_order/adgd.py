@@ -11,11 +11,9 @@ class Adgd(Optimizer):
     Arguments:
         lr (float, optional): an estimate of the inverse smoothness constant
     """
-    def __init__(self, lr=1e-10, *args, **kwargs):
+    def __init__(self, lr0=1e-8, *args, **kwargs):
         super(Adgd, self).__init__(*args, **kwargs)
-        self.lr = lr
-        self.theta = np.inf
-        self.grad_old = None
+        self.lr0 = lr0
         
     def step(self):
         self.grad = self.loss.gradient(self.x)
@@ -33,7 +31,10 @@ class Adgd(Optimizer):
     
     def init_run(self, *args, **kwargs):
         super(Adgd, self).init_run(*args, **kwargs)
+        self.lr = self.lr0
         self.trace.lrs = [self.lr]
+        self.theta = np.inf
+        self.grad_old = None
         
     def update_trace(self):
         super(Adgd, self).update_trace()
