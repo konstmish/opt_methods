@@ -20,10 +20,9 @@ def safe_sparse_add(a, b):
         return a + b
     
 
-def safe_sparse_dot(a, b):
+def safe_sparse_inner_prod(a, b):
     if scipy.sparse.issparse(a) and scipy.sparse.issparse(b):
-        
-        if a.shape[1] == b.shape[0]:
+        if a.ndim == 2 and a.shape[1] == b.shape[0]:
             return (a @ b)[0, 0]
         if a.shape[0] == b.shape[0]:
             return (a.T @ b)[0, 0]
