@@ -3,7 +3,9 @@ import scipy
 
 
 def safe_sparse_add(a, b):
-    if scipy.sparse.issparse(a) and scipy.sparse.issparse(b):
+    both_sparse = scipy.sparse.issparse(a) and scipy.sparse.issparse(b)
+    one_is_scalar = isinstance(a, (int, float)) or isinstance(b, (int, float))
+    if both_sparse or one_is_scalar:
         # both are sparse, keep the result sparse
         return a + b
     else:
