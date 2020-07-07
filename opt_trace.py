@@ -8,7 +8,7 @@ import pickle
 
 class Trace:
     """
-    Class that stores the logs of running an optimization method
+    Stores the logs of running an optimization method
     and plots the trajectory.
     """
     def __init__(self, loss):
@@ -16,12 +16,12 @@ class Trace:
         self.xs = []
         self.ts = []
         self.its = []
-        self.loss_vals = None
+        self.loss_vals = []
         self.its_converted_to_epochs = False
-        self.loss_is_computed = False
+        self.ls_its = None
     
     def compute_loss_of_iterates(self):
-        if self.loss_vals is None:
+        if len(self.loss_vals) == 0:
             self.loss_vals = np.asarray([self.loss.value(x) for x in self.xs])
         else:
             print('Loss values have already been computed. Set .loss_vals = None to recompute')
@@ -33,17 +33,21 @@ class Trace:
         self.its = np.asarray(self.its) / its_per_epoch
         self.its_converted_to_epochs = True
           
-    def plot_losses(self, f_opt=None, markevery=None, *args, **kwargs):
-        if self.loss_vals is None:
+    def plot_losses(self, its=None, f_opt=None, markevery=None, ls_its=False, *args, **kwargs):
+        if its is None:
+            its = self.ls_its if ls_its and self.ls_its is not None else self.its
+        if len(self.loss_vals) == 0:
             self.compute_loss_of_iterates()
         if f_opt is None:
             f_opt = self.loss.f_opt
         if markevery is None:
             markevery = max(1, len(self.loss_vals)//20)
-        plt.plot(self.its, self.loss_vals - f_opt, markevery=markevery, *args, **kwargs)
+        plt.plot(its, self.loss_vals - f_opt, markevery=markevery, *args, **kwargs)
         plt.ylabel(r'$f(x)-f^*$')
         
-    def plot_distances(self, x_opt=None, markevery=None, *args, **kwargs):
+    def plot_distances(self, its=None, x_opt=None, markevery=None, ls_its=False, *args, **kwargs):
+        if its is None:
+            its = self.ls_its if ls_its and self.ls_its is not None else self.its
         if x_opt is None:
             if self.loss.x_opt is None:
                 x_opt = self.xs[-1]
@@ -52,11 +56,13 @@ class Trace:
         if markevery is None:
             markevery = max(1, len(self.xs)//20)
         dists = [self.loss.norm(x-x_opt)**2 for x in self.xs]
-        plt.plot(self.its, dists, markevery=markevery, *args, **kwargs)
+        its = self.ls_its if ls_its and self.ls_its else self.its
+        plt.plot(its, dists, markevery=markevery, *args, **kwargs)
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
         
+    @property
     def best_loss_value(self):
-        if not self.loss_is_computed:
+        if len(self.loss_vals) == 0:
             self.compute_loss_of_iterates()
         return np.min(self.loss_vals)
         
@@ -70,12 +76,14 @@ class Trace:
         self.loss = loss_ref_copy
         
     @classmethod
-    def from_pickle(cls, path, loss):
+    def from_pickle(cls, path, loss=None):
         if not os.path.isfile(path):
             return None
         with open(path, 'rb') as f:
             trace = pickle.load(f)
             trace.loss = loss
+        if loss is not None:
+            loss.f_opt = min(self.best_loss_value, loss.f_opt)
         return trace
         
         
@@ -114,6 +122,7 @@ class StochasticTrace:
                       Set .loss_vals_all[{}] = None to recompute""".format(seed, seed))
         self.loss_is_computed = True
     
+    @property
     def best_loss_value(self):
         if not self.loss_is_computed:
             self.compute_loss_of_iterates()
@@ -128,12 +137,13 @@ class StochasticTrace:
         self.its = np.asarray(self.its) / its_per_epoch
         self.its_converted_to_epochs = True
         
-    def plot_losses(self, f_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
+    def plot_losses(self, its=None, f_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
         if not self.loss_is_computed:
             self.compute_loss_of_iterates()
+        if its is None:
+            its = np.mean([np.asarray(its_) for its_ in self.its_all.values()], axis=0)
         if f_opt is None:
             f_opt = self.loss.f_opt
-        it_ave = np.mean([np.asarray(its) for its in self.its_all.values()], axis=0)
         if log_std:
             y_log = [np.log(loss_vals-f_opt) for loss_vals in self.loss_vals_all.values()]
             y_log_ave = np.mean(y_log, axis=0)
@@ -148,19 +158,20 @@ class StochasticTrace:
         if markevery is None:
             markevery = max(1, len(y_ave)//20)
             
-        plot = plt.plot(it_ave, y_ave, markevery=markevery, *args, **kwargs)
+        plot = plt.plot(its, y_ave, markevery=markevery, *args, **kwargs)
         if len(self.loss_vals_all.keys()) > 1:
-            plt.fill_between(it_ave, lower, upper, alpha=alpha, color=plot[0].get_color())
+            plt.fill_between(its, lower, upper, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$f(x)-f^*$')
         
-    def plot_distances(self, x_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
+    def plot_distances(self, its=None, x_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
+        if its is None:
+            its = np.mean([np.asarray(its_) for its_ in self.its_all.values()], axis=0)
         if x_opt is None:
             if self.loss.x_opt is None:
                 x_opt = self.xs[-1]
             else:
                 x_opt = self.loss.x_opt
         
-        it_ave = np.mean([np.asarray(its) for its in self.its_all.values()], axis=0)
         dists = [np.asarray([self.loss.norm(x-x_opt)**2 for x in xs]) for xs in self.xs_all.values()]
         if log_std:
             y_log = [np.log(dist) for dist in dists]
@@ -176,7 +187,7 @@ class StochasticTrace:
         if markevery is None:
             markevery = max(1, len(y_ave)//20)
             
-        plot = plt.plot(it_ave, y_ave, markevery=markevery, *args, **kwargs)
+        plot = plt.plot(its, y_ave, markevery=markevery, *args, **kwargs)
         if len(self.loss_vals_all.keys()) > 1:
             plt.fill_between(it_ave, lower, upper, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
