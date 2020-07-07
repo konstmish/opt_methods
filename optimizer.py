@@ -1,11 +1,15 @@
+import copy
 import numpy as np
 import numpy.linalg as la
 import scipy
 import time
 
-from loss_functions import safe_sparse_norm
 from opt_trace import Trace, StochasticTrace
 from utils import set_seed
+
+
+SEED = 42
+MAX_SEED = 10000000
 
 
 class Optimizer:
@@ -13,7 +17,7 @@ class Optimizer:
     Base class for optimization algorithms. Provides methods to run them,
     save the trace and plot the results.
     """
-    def __init__(self, loss, t_max=np.inf, it_max=np.inf, trace_len=200, tolerance=0):
+    def __init__(self, loss, t_max=np.inf, it_max=np.inf, trace_len=200, tolerance=0, line_search=None):
         if t_max is np.inf and it_max is np.inf:
             it_max = 100
             print('The number of iterations is set to 100.')
@@ -22,6 +26,9 @@ class Optimizer:
         self.it_max = it_max
         self.trace_len = trace_len
         self.tolerance = tolerance
+        self.line_search = line_search
+        if line_search is not None:
+            line_search.reset(self)
         self.initialized = False
         self.x_old = None
         self.trace = Trace(loss=loss)
@@ -33,10 +40,9 @@ class Optimizer:
         
         while not self.check_convergence():
             if self.tolerance > 0:
-                self.x_old = self.x.copy()
+                self.x_old = copy.deepcopy(self.x)
             self.step()
             self.save_checkpoint()
-            assert scipy.sparse.issparse(self.x) or np.isfinite(self.x).all()
 
         return self.trace
         
@@ -44,7 +50,7 @@ class Optimizer:
         no_it_left = self.it >= self.it_max
         no_time_left = time.time()-self.t_start >= self.t_max
         if self.tolerance > 0:
-            tolerance_met = self.x_old is not None and safe_sparse_norm(self.x-self.x_old) < self.tolerance
+            tolerance_met = self.x_old is not None and self.loss.norm(self.x-self.x_old) < self.tolerance
         else:
             tolerance_met = False
         return no_it_left or no_time_left or tolerance_met
@@ -54,10 +60,13 @@ class Optimizer:
             
     def init_run(self, x0):
         self.dim = x0.shape[0]
-        self.x = x0.copy()
-        self.trace.xs = [x0.copy()]
+        self.x = copy.deepcopy(x0)
+        self.trace.xs = [copy.deepcopy(x0)]
         self.trace.its = [0]
         self.trace.ts = [0]
+        if self.line_search is not None:
+            self.trace.ls_its = [0]
+            self.trace.lrs = [self.line_search.lr]
         self.it = 0
         self.t = 0
         self.t_start = time.time()
@@ -75,9 +84,12 @@ class Optimizer:
         self.max_progress = max(self.time_progress, self.iterations_progress)
         
     def update_trace(self):
-        self.trace.xs.append(self.x.copy())
+        self.trace.xs.append(copy.deepcopy(self.x))
         self.trace.ts.append(self.t)
         self.trace.its.append(self.it)
+        if self.line_search is not None:
+            self.trace.ls_its.append(self.line_search.it)
+            self.trace.lrs.append(self.line_search.lr)
 
         
 class StochasticOptimizer(Optimizer):
@@ -90,19 +102,30 @@ class StochasticOptimizer(Optimizer):
         super(StochasticOptimizer, self).__init__(loss=loss, *args, **kwargs)
         self.seeds = seeds
         if not seeds:
-            np.random.seed(42)
-            self.seeds = [np.random.randint(100000) for _ in range(n_seeds)]
+            np.random.seed(SEED)
+            self.seeds = np.random.randint(MAX_SEED, size=n_seeds)
         self.finished_seeds = []
         self.trace = StochasticTrace(loss=loss)
+        self.seed = None
     
     def run(self, *args, **kwargs):
         for seed in self.seeds:
             if seed in self.finished_seeds:
                 continue
+            if self.line_search is not None:
+                self.line_search.reset()
             set_seed(seed)
+            self.seed = seed
             self.trace.init_seed()
             super(StochasticOptimizer, self).run(*args, **kwargs)
             self.trace.append_seed_results(seed)
             self.finished_seeds.append(seed)
             self.initialized = False
+        self.seed = None
         return self.trace
+    
+    def add_seeds(self, n_extra_seeds=1):
+        np.random.seed(SEED)
+        n_seeds = len(self.seeds) + n_extra_seeds
+        self.seeds = np.random.randint(MAX_SEED, size=n_seeds)
+        self.loss_is_computed = False
