@@ -5,7 +5,7 @@ import numpy.linalg as la
 from sklearn.utils.extmath import row_norms, safe_sparse_dot
 
 from .loss_oracle import Oracle
-from .utils import safe_sparse_add, safe_sparse_multiply, safe_sparse_norm
+from .utils import safe_sparse_add, safe_sparse_multiply, safe_sparse_norm, safe_sparse_inner_prod
 
 
 def logsig(x):
@@ -29,6 +29,7 @@ class LogisticRegression(Oracle):
     """
     Logistic regression oracle that returns loss values, gradients and Hessians.
     """
+    
     def __init__(self, A, b, store_mat_vec_prod=True, *args, **kwargs):
         super(LogisticRegression, self).__init__(*args, **kwargs)
         self.A = A
@@ -47,7 +48,7 @@ class LogisticRegression(Oracle):
         self.x_last = 0.
         self.mat_vec_prod = np.zeros(self.n)
     
-    def value(self, x):
+    def value_(self, x):
         z = self.mat_vec_product(x)
         regularization = self.l1*safe_sparse_norm(x, ord=1) + self.l2/2*safe_sparse_norm(x)**2
         return np.mean(safe_sparse_multiply(1-self.b, z)-logsig(z)) + regularization
@@ -72,13 +73,6 @@ class LogisticRegression(Oracle):
             grad = scipy.sparse.csr_matrix(grad).T
         return grad
     
-    def hessian(self, x):
-        z = self.mat_vec_product(x)
-        activation = scipy.special.expit(z)
-        weights = activation * (1-activation)
-        A_weighted = safe_sparse_multiply(self.A.T, weights)
-        return A_weighted@self.A/self.n + self.l2*np.eye(self.dim)
-    
     def stochastic_gradient(self, x, idx=None, batch_size=1, replace=False, normalization=None):
         """
         normalization is needed for Shuffling optimizer
@@ -99,8 +93,29 @@ class LogisticRegression(Oracle):
             stoch_grad = scipy.sparse.csr_matrix(stoch_grad).T
         return stoch_grad
     
+    def hessian(self, x):
+        z = self.mat_vec_product(x)
+        activation = scipy.special.expit(z)
+        weights = activation * (1-activation)
+        A_weighted = safe_sparse_multiply(self.A.T, weights)
+        return A_weighted@self.A/self.n + self.l2*np.eye(self.dim)
+    
+    def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None):
+        if idx is None:
+            idx = np.random.choice(self.n, size=batch_size, replace=replace)
+        else:
+            batch_size = 1 if np.isscalar(idx) else len(idx)
+        if normalization is None:
+            normalization = batch_sizez = self.A[idx] @ x
+        if scipy.sparse.issparse(z):
+            z = z.toarray().ravel()
+        activation = scipy.special.expit(z)
+        weights = activation * (1-activation)
+        A_weighted = safe_sparse_multiply(self.A[idx].T, weights)
+        return A_weighted@self.A[idx]/normalization + self.l2*np.eye(self.dim)
+    
     def mat_vec_product(self, x):
-        if not self.store_mat_vec_prod or safe_sparse_norm(x-self.x_last) != 0:
+        if not self.store_mat_vec_prod or safe_sparse_norm(safe_sparse_add(x, -self.x_last)) != 0:
             z = self.A @ x
             if scipy.sparse.issparse(z):
                 z = z.toarray().ravel()
@@ -112,6 +127,16 @@ class LogisticRegression(Oracle):
     
     def norm(self, x):
         return safe_sparse_norm(x)
+    
+    def inner_prod(self, x, y):
+        return safe_sparse_inner_prod(x, y)
+    
+    def hess_vec_prod(self, x, v, grad_dif=False, eps=None):
+        if grad_dif:
+            grad_x = self.gradient(x)
+            grad_x_v = self.gradient(x + eps * v)
+            return (grad_x_v - grad_x) / eps
+        return safe_sparse_dot(self.hessian(x), v)
         
     def smoothness(self):
         if scipy.sparse.issparse(self.A):
