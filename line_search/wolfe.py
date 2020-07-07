@@ -12,11 +12,11 @@ class Wolfe(LineSearch):
         armijo_const (float, optional): proportionality constant for the armijo condition (default: 0.5)
         wolfe_const (float, optional): second proportionality constant for the wolfe condition (default: 0.5)
         start_with_prev_lr (boolean, optional): sets the reset option from (default: True)
-        backtracking (float, optional): constant to multiply the estimate stepsize with (default: 0.6)
+        backtracking (float, optional): constant to multiply the estimate stepsize with (default: 0.5)
     """
     
     def __init__(self, armijo_const=0.1, wolfe_const=0.9, strong=False, 
-                 start_with_prev_lr=True, backtracking=0.6, *args, **kwargs):
+                 start_with_prev_lr=True, backtracking=0.5, *args, **kwargs):
         super(Wolfe, self).__init__(*args, **kwargs)
         self.armijo_const = armijo_const
         self.wolfe_const = wolfe_const
