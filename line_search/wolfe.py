@@ -15,16 +15,19 @@ class Wolfe(LineSearch):
         backtracking (float, optional): constant to multiply the estimate stepsize with (default: 0.6)
     """
     
-    def __init__(self, armijo_const=0.1, wolfe_const=0.9, start_with_prev_lr=True, backtracking=0.6, *args, **kwargs):
+    def __init__(self, armijo_const=0.1, wolfe_const=0.9, strong=False, 
+                 start_with_prev_lr=True, backtracking=0.6, *args, **kwargs):
         super(Wolfe, self).__init__(*args, **kwargs)
         self.armijo_const = armijo_const
         self.wolfe_const = wolfe_const
+        self.strong = strong
         self.start_with_prev_lr = start_with_prev_lr
         self.backtracking = backtracking
         self.x_prev = None
         self.val_prev = None
         
     def conditions(self, gradient, x, x_new):
+        # TODO: don't check Armijo condtion if only the curvature one is not satisfied
         value_new = self.loss.value(x_new)
         self.x_prev = copy.deepcopy(x_new)
         self.val_prev = value_new
@@ -33,7 +36,11 @@ class Wolfe(LineSearch):
         if not armijo_condition:
             return armijo_condition, True
         grad_new = self.loss.gradient(x_new)
-        curvature_condition = self.loss.inner_prod(grad_new, x - x_new) <= self.wolfe_const * self.loss.inner_prod(grad_new, x - x_new)
+        curv_x = self.loss.inner_prod(gradient, x - x_new)
+        curv_x_new = self.loss.inner_prod(grad_new, x - x_new)
+        if self.strong:
+            curv_x, curv_x_new = np.abs(curv_x), np.abs(curv_x_new)
+        curvature_condition = curv_x_new <= self.wolfe_const * curv_x
         return armijo_condition, curvature_condition
         
     def __call__(self, gradient=None, direction=None, x=None, x_new=None):
