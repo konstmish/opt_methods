@@ -1,15 +1,14 @@
 import numpy.linalg as la
 
-
 from optimizer import Optimizer
 
 
 class Newton(Optimizer):
     """
-    Gradient descent with constant learning rate.
+    Newton algorithm for convex minimization.
     
     Arguments:
-        lr (float, optional): an estimate of the inverse smoothness constant
+        lr (float, optional): dampening constant (default: 1)
     """
     def __init__(self, lr=1, *args, **kwargs):
         super(Newton, self).__init__(*args, **kwargs)
