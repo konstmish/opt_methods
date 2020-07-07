@@ -5,7 +5,7 @@ from .line_search import LineSearch
 class Armijo(LineSearch):
     """
     Armijo line search with optional resetting of the initial stepsize
-    of each iteration. If resetting is used, the previous value multiplied 
+    at each iteration. If resetting is used, the previous value multiplied 
     by 1/backtracking is used as the first stepsize to try at this iteration.
     Otherwise, it starts with the maximal stepsize.
     Arguments:
