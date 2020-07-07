@@ -1,3 +1,6 @@
+import copy
+import numpy as np
+
 class Oracle():
     """
     Base class for all objectives. Can provide objective values,
@@ -11,9 +14,15 @@ class Oracle():
             raise ValueError("Invalid value for l2 regularization: {}".format(l2))
         self.l1 = l1
         self.l2 = l2
+        self.x_opt = None
+        self.f_opt = np.inf
     
     def value(self, x):
-        pass
+        value = self.value_(x)
+        if value < self.f_opt:
+            self.x_opt = copy.deepcopy(x)
+            self.f_opt = value
+        return value
     
     def gradient(self, x):
         pass
@@ -22,6 +31,12 @@ class Oracle():
         pass
     
     def norm(self, x):
+        pass
+    
+    def inner_prod(self, x, y):
+        pass
+    
+    def hess_vec_prod(self, x, v, grad_dif=False, eps=None):
         pass
     
     def smoothness(self):
