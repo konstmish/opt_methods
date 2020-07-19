@@ -12,7 +12,7 @@ class Goldstein(LineSearch):
     Arguments:
         goldstein_const (float, optional): proportionality constant for both conditions (default: 0.05)
         start_with_prev_lr (boolean, optional): sets the reset option from (default: True)
-        backtracking (float, optional): constant to multiply the estimate stepsize with (default: 0.5)
+        backtracking (float, optional): constant by which the current stepsize is multiplied (default: 0.5)
     """
     
     def __init__(self, goldstein_const=0.05, start_with_prev_lr=True, backtracking=0.5, *args, **kwargs):
@@ -28,7 +28,7 @@ class Goldstein(LineSearch):
         self.x_prev = copy.deepcopy(x_new)
         self.val_prev = value_new
         descent = self.goldstein_const * self.loss.inner_prod(gradient, x - x_new)
-        return value_new <= self.current_value - descent
+        return value_new <= self.current_value - descent + self.tolerance
     
     def goldstein_condition(self, gradient, x, x_new):
         value_new = self.loss.value(x_new)
@@ -37,17 +37,17 @@ class Goldstein(LineSearch):
         descent = (1-self.goldstein_const) * self.loss.inner_prod(gradient, x - x_new)
         return value_new >= self.current_value - descent
         
-    def __call__(self, gradient=None, direction=None, x=None, x_new=None):
+    def __call__(self, x=None, x_new=None, gradient=None, direction=None):
         if gradient is None:
             gradient = self.optimizer.grad
         if x is None:
             x = self.optimizer.x
-        self.lr = self.lr if self.start_with_prev_lr else self.lr0
         if direction is None:
             direction = (x_new - x) / self.lr
+        self.lr = self.lr if self.start_with_prev_lr else self.lr0
         if x_new is None:
-            x_new = x + direction * self.lr
-        if x is self.x_prev:
+            x_new = x + self.lr * direction
+        if self.loss.is_equal(x, self.x_prev):
             self.current_value = self.val_prev
         else:
             self.current_value = self.loss.value(x)
@@ -55,13 +55,13 @@ class Goldstein(LineSearch):
         armijo_condition = self.armijo_condition(gradient, x, x_new)
         goldstein_condition = self.goldstein_condition(gradient, x, x_new)
         it_extra = 0
-        while not armijo_condition:
+        while not armijo_condition and it_extra < self.it_max:
             self.lr *= self.backtracking
             x_new = x + self.lr * direction
             armijo_condition = self.armijo_condition(gradient, x, x_new)
             it_extra += 1
         if it_extra == 0:
-            while not goldstein_condition:
+            while not goldstein_condition and it_extra < self.it_max:
                 self.lr /= self.backtracking
                 x_new = x + self.lr * direction
                 goldstein_condition = self.goldstein_condition(gradient, x, x_new)
