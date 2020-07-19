@@ -50,7 +50,9 @@ class LogisticRegression(Oracle):
     
     def value_(self, x):
         z = self.mat_vec_product(x)
-        regularization = self.l1*safe_sparse_norm(x, ord=1) + self.l2/2*safe_sparse_norm(x)**2
+        regularization = 0
+        if self.l1 != 0 or self.l2 != 0:
+            regularization = self.l1*safe_sparse_norm(x, ord=1) + self.l2/2*safe_sparse_norm(x)**2
         return np.mean(safe_sparse_multiply(1-self.b, z)-logsig(z)) + regularization
     
     def partial_value(self, x, idx, include_reg=True, normalization=None):
@@ -125,12 +127,6 @@ class LogisticRegression(Oracle):
         
         return self.mat_vec_prod
     
-    def norm(self, x):
-        return safe_sparse_norm(x)
-    
-    def inner_prod(self, x, y):
-        return safe_sparse_inner_prod(x, y)
-    
     def hess_vec_prod(self, x, v, grad_dif=False, eps=None):
         if grad_dif:
             grad_x = self.gradient(x)
@@ -161,7 +157,32 @@ class LogisticRegression(Oracle):
         L_batch = self.n / (self.n-1) * (1-1/batch_size) * L + (self.n/batch_size-1) / (self.n-1) * L_max
         return L_batch
     
-    def density(self, x):
+    @staticmethod
+    def norm(x):
+        return safe_sparse_norm(x)
+    
+    @staticmethod
+    def inner_prod(x, y):
+        return safe_sparse_inner_prod(x, y)
+    
+    @staticmethod
+    def outer_prod(x, y):
+        return np.outer(x, y)
+    
+    @staticmethod
+    def is_equal(x, y):
+        x_sparse = scipy.sparse.issparse(x)
+        y_sparse = scipy.sparse.issparse(y)
+        if (x_sparse and not y_sparse) or (y_sparse and not x_sparse):
+            return False
+        if not x_sparse and not y_sparse:
+            return np.array_equal(x, y)
+        if x.nnz != y.nnz:
+            return False
+        return (x!=y).nnz == 0 
+    
+    @staticmethod
+    def density(x):
         if hasattr(x, "toarray"):
             dty = float(x.nnz) / (x.shape[0]*x.shape[1])
         else:

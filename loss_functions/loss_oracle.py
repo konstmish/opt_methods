@@ -30,12 +30,6 @@ class Oracle():
     def hessian(self, x):
         pass
     
-    def norm(self, x):
-        pass
-    
-    def inner_prod(self, x, y):
-        pass
-    
     def hess_vec_prod(self, x, v, grad_dif=False, eps=None):
         pass
     
@@ -49,4 +43,20 @@ class Oracle():
         pass
 
     def batch_smoothness(self, batch_size):
+        pass
+    
+    @staticmethod
+    def norm(x):
+        pass
+    
+    @staticmethod
+    def inner_prod(x, y):
+        pass
+    
+    @staticmethod
+    def outer_prod(x, y):
+        pass
+    
+    @staticmethod
+    def is_equal(x, y):
         pass
