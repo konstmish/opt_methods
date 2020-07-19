@@ -6,6 +6,7 @@ class LineSearch():
     be measured in many ways: decrease of functional values, 
     smaller gradient, Lipschitzness of an operator, etc.
     Args:
+        lr0 (float, optional): the initial estimate (default: 1.0)
         count_first_it (bool, optional): to count the first iteration
             as if it takes effort. This should be False for methods that
             reuse information, such as objective value, from the previous 
@@ -17,14 +18,20 @@ class LineSearch():
             the next gradient or other important quantities. However, even then, 
             it is convenient to set to False to account for gradient
             computation (default: True)
+        it_max (int, optional): maximal number of innert iterations per one call. 
+                                    Prevents from running for too long and 
+                                    from running into machine precision issues (default: 40)
+        tolerance (float, optional): the allowed amount of condition violation (default: 0)
     """
     
-    def __init__(self, lr0=1, count_first_it=False, count_last_it=True):
+    def __init__(self, lr0=1.0, count_first_it=False, count_last_it=True, it_max=50, tolerance=0):
         self.lr0 = lr0
         self.lr = lr0
         self.count_first_it = count_first_it
         self.count_last_it = count_last_it
         self.it = 0
+        self.it_max = it_max
+        self.tolerance = tolerance
         
     @property
     def it_per_call(self):
@@ -36,5 +43,5 @@ class LineSearch():
         self.optimizer = optimizer
         self.loss = optimizer.loss
         
-    def __call__(self, direction=None, x=None, x_new=None):
+    def __call__(self, x=None, direction=None, x_new=None):
         pass
