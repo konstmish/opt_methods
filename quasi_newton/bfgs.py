@@ -13,7 +13,8 @@ class Bfgs(Optimizer):
         hess_estim (float array of shape (dim, dim)): initial Hessian estimate
         lr (float, optional): stepsize (default: 1)
     """
-    def __init__(self, L=None, hess_estim=None, lr=1, line_search=False, ls_backtrack=0.5, ls_it_max=100, *args, **kwargs):
+    
+    def __init__(self, L=None, hess_estim=None, lr=1, *args, **kwargs):
         super(Bfgs, self).__init__(*args, **kwargs)
         if L is None and hess_estim is None:
             L = self.loss.smoothness()
@@ -22,25 +23,12 @@ class Bfgs(Optimizer):
         self.lr = lr
         self.L = L
         self.B = hess_estim
-        self.line_search = line_search
-        self.ls_backtrack = ls_backtrack
-        self.ls_it_max = ls_it_max
         
     def step(self):
         self.grad = self.loss.gradient(self.x)
-        x_new = self.x - self.B_inv @ self.grad
-        if self.line_search:
-            lr = min(1., self.lrs[-1] / self.ls_backtrack if len(self.lrs) > 0 else .1)
-            for i in range(self.ls_it_max):
-                f_new = self.loss.value(self.x + lr * (x_new - self.x))
-                if f_new < self.f:
-                    break
-                lr *= self.ls_backtrack
-            self.lrs.append(lr)
-            self.f = f_new
-        else:
-            lr = self.lr
-        x_new = self.x + lr * (x_new - self.x)
+        x_new = self.x - self.lr * self.B_inv @ self.grad
+        if self.line_search is not None:
+            x_new = self.line_search(self.x, x_new)
         
         s = x_new - self.x
         grad_new = self.loss.gradient(x_new)
@@ -63,6 +51,3 @@ class Bfgs(Optimizer):
         else:
             self.B_inv = np.linalg.pinv(self.B)
         self.grad = self.loss.gradient(self.x)
-        if self.line_search:
-            self.f = self.loss.value(self.x)
-            self.lrs = []
