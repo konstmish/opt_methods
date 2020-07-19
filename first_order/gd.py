@@ -17,7 +17,7 @@ class Gd(Optimizer):
         if self.line_search is None:
             self.x -= self.lr * self.grad
         else:
-            self.x = self.line_search(direction=-self.grad)
+            self.x = self.line_search(x=self.x, direction=-self.grad)
     
     def init_run(self, *args, **kwargs):
         super(Gd, self).init_run(*args, **kwargs)

@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 
 from optimizer import Optimizer
@@ -10,7 +11,8 @@ class AdgdAccel(Optimizer):
     Momentum is used as given by Nesterov's acceleration.
     
     Arguments:
-        lr (float, optional): an estimate of the inverse smoothness constant
+        lr0 (float, optional): a small value that idealy should be smaller than the
+            inverse (local) smoothness constant. Does not affect performance too much.
     """
     def __init__(self, lr0=1e-8, *args, **kwargs):
         super(AdgdAccel, self).__init__(*args, **kwargs)
@@ -20,9 +22,9 @@ class AdgdAccel(Optimizer):
         self.grad = self.loss.gradient(self.x)
         self.estimate_new_stepsize()
         self.estimate_new_momentum()
-        self.x_nest_old = self.x_nest.copy()
-        self.x_old = self.x.copy()
-        self.grad_old = self.grad.copy()
+        self.x_nest_old = copy.deepcopy(self.x_nest)
+        self.x_old = copy.deepcopy(self.x)
+        self.grad_old = copy.deepcopy(self.grad)
         self.x_nest = self.x - self.lr*self.grad
         self.x = self.x_nest + self.momentum*(self.x_nest-self.x_nest_old)
         
@@ -43,7 +45,7 @@ class AdgdAccel(Optimizer):
     
     def init_run(self, *args, **kwargs):
         super(AdgdAccel, self).init_run(*args, **kwargs)
-        self.x_nest = self.x.copy()
+        self.x_nest = copy.deepcopy(self.x)
         self.momentum = 0
         self.lr = self.lr0
         self.mu = 1 / self.lr

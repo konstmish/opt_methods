@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 
 from optimizer import Optimizer
@@ -9,7 +10,8 @@ class Adgd(Optimizer):
     using local values of smoothness (gradient Lipschitzness).
     
     Arguments:
-        lr (float, optional): an estimate of the inverse smoothness constant
+        lr0 (float, optional): a small value that idealy should be smaller than the
+            inverse (local) smoothness constant. Does not affect performance too much.
     """
     def __init__(self, lr0=1e-8, *args, **kwargs):
         super(Adgd, self).__init__(*args, **kwargs)
@@ -18,8 +20,8 @@ class Adgd(Optimizer):
     def step(self):
         self.grad = self.loss.gradient(self.x)
         self.estimate_new_stepsize()
-        self.x_old = self.x.copy()
-        self.grad_old = self.grad.copy()
+        self.x_old = copy.deepcopy(self.x)
+        self.grad_old = copy.deepcopy(self.grad)
         self.x -= self.lr * self.grad
         
     def estimate_new_stepsize(self):
