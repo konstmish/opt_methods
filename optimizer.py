@@ -30,7 +30,7 @@ class Optimizer:
         if line_search is not None:
             line_search.reset(self)
         self.initialized = False
-        self.x_old = None
+        self.x_old_tol = None
         self.trace = Trace(loss=loss)
     
     def run(self, x0):
@@ -40,7 +40,7 @@ class Optimizer:
         
         while not self.check_convergence():
             if self.tolerance > 0:
-                self.x_old = copy.deepcopy(self.x)
+                self.x_old_tol = copy.deepcopy(self.x)
             self.step()
             self.save_checkpoint()
 
@@ -50,7 +50,7 @@ class Optimizer:
         no_it_left = self.it >= self.it_max
         no_time_left = time.time()-self.t_start >= self.t_max
         if self.tolerance > 0:
-            tolerance_met = self.x_old is not None and self.loss.norm(self.x-self.x_old) < self.tolerance
+            tolerance_met = self.x_old_tol is not None and self.loss.norm(self.x-self.x_old_tol) < self.tolerance
         else:
             tolerance_met = False
         return no_it_left or no_time_left or tolerance_met
