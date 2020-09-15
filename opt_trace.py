@@ -24,7 +24,7 @@ class Trace:
         if len(self.loss_vals) == 0:
             self.loss_vals = np.asarray([self.loss.value(x) for x in self.xs])
         else:
-            print('Loss values have already been computed. Set .loss_vals = None to recompute')
+            print('Loss values have already been computed. Set .loss_vals = [] to recompute')
     
     def convert_its_to_epochs(self, batch_size=1):
         its_per_epoch = self.loss.n / batch_size
@@ -119,7 +119,7 @@ class StochasticTrace:
                 self.loss_vals_all[seed] = np.asarray([self.loss.value(x) for x in self.xs_all[seed]])
             else:
                 print("""Loss values for seed {} have already been computed. 
-                      Set .loss_vals_all[{}] = None to recompute""".format(seed, seed))
+                      Set .loss_vals_all[{}] = [] to recompute""".format(seed, seed))
         self.loss_is_computed = True
     
     @property
