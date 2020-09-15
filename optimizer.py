@@ -103,7 +103,7 @@ class StochasticOptimizer(Optimizer):
         self.seeds = seeds
         if not seeds:
             np.random.seed(SEED)
-            self.seeds = np.random.randint(MAX_SEED, size=n_seeds)
+            self.seeds = np.random.choice(MAX_SEED, size=n_seeds, replace=False)
         self.finished_seeds = []
         self.trace = StochasticTrace(loss=loss)
         self.seed = None
@@ -127,5 +127,5 @@ class StochasticOptimizer(Optimizer):
     def add_seeds(self, n_extra_seeds=1):
         np.random.seed(SEED)
         n_seeds = len(self.seeds) + n_extra_seeds
-        self.seeds = np.random.randint(MAX_SEED, size=n_seeds)
+        self.seeds = np.random.choice(MAX_SEED, size=n_seeds, replace=False)
         self.loss_is_computed = False
