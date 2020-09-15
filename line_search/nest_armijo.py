@@ -20,7 +20,7 @@ class NestArmijo(LineSearch):
         
     def condition(self, y, x_new):
         grad_new = self.loss.gradient(x_new)
-        return self.loss.inner_prod(grad_new, y - x_new) >= self.lr * self.loss.norm(grad_new)**2
+        return self.loss.inner_prod(grad_new, y - x_new) >= self.lr * self.loss.norm(grad_new)**2 - self.tolerance
         
     def __call__(self, x, v, A):
         self.lr = self.lr / self.backtracking if self.start_with_prev_lr else self.lr0

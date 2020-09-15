@@ -43,8 +43,9 @@ class BestGrid(LineSearch):
         if x is None:
             x = self.optimizer.x
         if direction is None:
-            direction = (x_new - x) / self.lr
-        if self.start_with_prev_lr:
+            direction = x_new - x
+            self.lr = 1
+        elif self.start_with_prev_lr:
             self.lr = self.lr / self.backtracking if self.increase_lr else self.lr
             self.lr = min(self.lr, self.lr_max)
         else:
@@ -76,10 +77,10 @@ class BestGrid(LineSearch):
             x_next = x + lr_next * direction
             proposed_next = self.metric_value(x_next)
             found_best = self.condition(proposed_value, proposed_next)
-            if not found_best:
+            it_extra += 1
+            if not found_best or it_extra == self.it_max:
                 self.lr = lr_next
                 proposed_value = proposed_next
-            it_extra += 1
         
         x_new = x + self.lr * direction
         self.val_prev = proposed_value
