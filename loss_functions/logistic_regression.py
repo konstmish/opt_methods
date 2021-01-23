@@ -108,7 +108,8 @@ class LogisticRegression(Oracle):
         else:
             batch_size = 1 if np.isscalar(idx) else len(idx)
         if normalization is None:
-            normalization = batch_sizez = self.A[idx] @ x
+            normalization = batch_size
+        z = self.A[idx] @ x
         if scipy.sparse.issparse(z):
             z = z.toarray().ravel()
         activation = scipy.special.expit(z)
