@@ -78,21 +78,3 @@ class Lbfgs(Optimizer):
             self.rhos.pop(0)
         self.x = x_new
         self.grad = grad_new
-        
-#         s = x_new - self.x
-#         grad_new = self.loss.gradient(x_new)
-#         y = grad_new - self.grad
-#         self.grad = grad_new
-#         Bs = self.B @ s
-#         sBs = s @ Bs
-#         B_inv_y = self.B_inv @ y
-#         y_B_inv_y = y @ B_inv_y
-#         y_s = y @ s
-#         self.B += np.outer(y, y)/y_s - np.outer(Bs, Bs)/sBs
-#         self.B_inv += (y_s + y_B_inv_y) * np.outer(s, s) / y_s**2
-#         self.B_inv -= (np.outer(B_inv_y, s) + np.outer(s, B_inv_y)) / y_s
-#         self.x = x_new
-    
-#     def init_run(self, *args, **kwargs):
-#         super(Lbfgs, self).init_run(*args, **kwargs)
-#         self.grad = self.loss.gradient(self.x)
