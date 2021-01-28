@@ -5,11 +5,19 @@ from optimizer import Optimizer
 
 class Polyak(Optimizer):
     """
-    Fatkhulin-Polyak adaptive gradient descent 
-    https://arxiv.org/pdf/2004.09875.pdf
+    Polyak adaptive gradient descent, proposed in
+        (B. T. Poyal, "Introduction to Optimization")
+    which can be accessed, e.g., here:
+        https://www.researchgate.net/publication/342978480_Introduction_to_Optimization
     
     Arguments:
-        lr (float, optional): an estimate of the inverse smoothness constant
+        f_opt (float): precise value of the objective's minimum. If an underestimate is given,
+            the algorirthm can be unstable; if an overestimate is given, will not converge below
+            the overestimate.
+        lr_min (float, optional): the smallest step-size, useful when
+            an overestimate of the optimal value is given (default: 0)
+        lr_max (float, optional): the laregest allowed step-size, useful when
+            an underestimate of the optimal value is given (defaul: np.inf)
     """
     def __init__(self, f_opt, lr_min=0, lr_max=np.inf, *args, **kwargs):
         super(Polyak, self).__init__(*args, **kwargs)
