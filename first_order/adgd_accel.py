@@ -14,23 +14,23 @@ class AdgdAccel(Optimizer):
         lr0 (float, optional): a small value that idealy should be smaller than the
             inverse (local) smoothness constant. Does not affect performance too much.
     """
-    def __init__(self, lr0=1e-8, *args, **kwargs):
+    def __init__(self, lr0=1e-6, *args, **kwargs):
         super(AdgdAccel, self).__init__(*args, **kwargs)
         self.lr0 = lr0
         
     def step(self):
-        self.grad = self.loss.gradient(self.x)
+        self.grad = self.loss.gradient(self.x_nest)
         self.estimate_new_stepsize()
         self.estimate_new_momentum()
         self.x_nest_old = copy.deepcopy(self.x_nest)
         self.x_old = copy.deepcopy(self.x)
         self.grad_old = copy.deepcopy(self.grad)
-        self.x_nest = self.x - self.lr*self.grad
-        self.x = self.x_nest + self.momentum*(self.x_nest-self.x_nest_old)
+        self.x = self.x_nest - self.lr*self.grad
+        self.x_nest = self.x + self.momentum*(self.x - self.x_old)
         
     def estimate_new_stepsize(self):
         if self.grad_old is not None:
-            self.L = self.loss.norm(self.grad-self.grad_old) / self.loss.norm(self.x-self.x_old)
+            self.L = self.loss.norm(self.grad-self.grad_old) / self.loss.norm(self.x_nest-self.x_nest_old)
             lr_new = min(np.sqrt(1+0.5*self.theta) * self.lr, 0.5/self.L)
             self.theta = lr_new / self.lr
             self.lr = lr_new

@@ -13,7 +13,7 @@ class Adgd(Optimizer):
         lr0 (float, optional): a small value that idealy should be smaller than the
             inverse (local) smoothness constant. Does not affect performance too much.
     """
-    def __init__(self, lr0=1e-8, *args, **kwargs):
+    def __init__(self, lr0=1e-6, *args, **kwargs):
         super(Adgd, self).__init__(*args, **kwargs)
         self.lr0 = lr0
         
