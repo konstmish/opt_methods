@@ -7,7 +7,7 @@ from optimizer import Optimizer
 class Lbfgs(Optimizer):
     """
     Limited-memory Broyden–Fletcher–Goldfarb–Shanno algorithm. See
-        p. 177 in J. Nocedal S. J. Wright, "Numerical Optimization", 2nd edtion
+        p. 177 in (J. Nocedal and S. J. Wright, "Numerical Optimization", 2nd edtion)
     or 
         https://en.wikipedia.org/wiki/Limited-memory_BFGS
     for a general description.
@@ -18,7 +18,7 @@ class Lbfgs(Optimizer):
         hess_estim (float array of shape (dim, dim), optional): initial Hessian estimate
         lr (float, optional): stepsize (default: 1)
         mem_size (int, optional): memory size (default: 1)
-        lm (float, optional): Levenberg-Marquardt penalty (default: 0)
+        adaptive_init (bool, optional): whether to use 
     """
     
     def __init__(self, L=None, hess_estim=None, inv_hess_estim=None, lr=1, mem_size=1, adaptive_init=False, *args, **kwargs):
