@@ -17,7 +17,7 @@ class Optimizer:
     Base class for optimization algorithms. Provides methods to run them,
     save the trace and plot the results.
     """
-    def __init__(self, loss, t_max=np.inf, it_max=np.inf, trace_len=200, tolerance=0, line_search=None):
+    def __init__(self, loss, t_max=np.inf, it_max=np.inf, trace_len=200, tolerance=0, line_search=None, use_prox=True):
         if t_max is np.inf and it_max is np.inf:
             it_max = 100
             print('The number of iterations is set to 100.')
@@ -29,6 +29,7 @@ class Optimizer:
         self.line_search = line_search
         if line_search is not None:
             line_search.reset(self)
+        self.use_prox = use_prox and (self.loss.regularizer is not None)
         self.initialized = False
         self.x_old_tol = None
         self.trace = Trace(loss=loss)
@@ -48,7 +49,7 @@ class Optimizer:
         
     def check_convergence(self):
         no_it_left = self.it >= self.it_max
-        no_time_left = time.time()-self.t_start >= self.t_max
+        no_time_left = time.perf_counter()-self.t_start >= self.t_max
         if self.tolerance > 0:
             tolerance_met = self.x_old_tol is not None and self.loss.norm(self.x-self.x_old_tol) < self.tolerance
         else:
@@ -69,14 +70,14 @@ class Optimizer:
             self.trace.lrs = [self.line_search.lr]
         self.it = 0
         self.t = 0
-        self.t_start = time.time()
+        self.t_start = time.perf_counter()
         self.time_progress = 0
         self.iterations_progress = 0
         self.max_progress = 0
         
     def save_checkpoint(self, first_iterations=10):
         self.it += 1
-        self.t = time.time() - self.t_start
+        self.t = time.perf_counter() - self.t_start
         self.time_progress = int((self.trace_len-first_iterations) * self.t / self.t_max)
         self.iterations_progress = int((self.trace_len-first_iterations) * (self.it / self.it_max))
         if (max(self.time_progress, self.iterations_progress) > self.max_progress) or (self.it <= first_iterations):
@@ -90,6 +91,14 @@ class Optimizer:
         if self.line_search is not None:
             self.trace.ls_its.append(self.line_search.it)
             self.trace.lrs.append(self.line_search.lr)
+            
+    def compute_loss_of_iterates(self):
+        self.trace.compute_loss_of_iterates()
+        
+    def reset(self):
+        self.initialized = False
+        self.x_old_tol = None
+        self.trace = Trace(loss=loss)
 
         
 class StochasticOptimizer(Optimizer):

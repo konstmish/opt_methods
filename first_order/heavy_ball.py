@@ -28,11 +28,14 @@ class HeavyBall(Optimizer):
             self.momentum = self.it / (self.it+1)
         x_copy = self.x.copy()
         self.grad = self.loss.gradient(self.x)
-        self.x = self.x - self.lr * self.grad + self.momentum*(self.x-self.x_old)
+        if self.use_prox:
+            self.x = self.loss.regularizer.prox(self.x - self.lr*self.grad, self.lr) + self.momentum*(self.x-self.x_old)
+        else:
+            self.x = self.x - self.lr * self.grad + self.momentum*(self.x-self.x_old)
         self.x_old = x_copy
     
     def init_run(self, *args, **kwargs):
         super(HeavyBall, self).init_run(*args, **kwargs)
         if self.lr is None:
-            self.lr = 1 / self.loss.smoothness()
+            self.lr = 1 / self.loss.smoothness
         self.x_old = self.x.copy()

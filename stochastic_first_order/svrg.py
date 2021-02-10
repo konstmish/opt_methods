@@ -49,6 +49,8 @@ class Svrg(StochasticOptimizer):
             self.vr_grad = stoch_grad - stoch_grad_old + self.full_grad_old
             
         self.x -= self.lr * self.vr_grad
+        if self.use_prox:
+            self.x = self.loss.regularizer.prox(self.x, self.lr)
         self.loop_it += 1
     
     def init_run(self, *args, **kwargs):

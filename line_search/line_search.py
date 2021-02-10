@@ -4,7 +4,7 @@ class LineSearch():
     scalar alpha such that x + alpha * delta is a good
     direction for optimization. The goodness of the new point can 
     be measured in many ways: decrease of functional values, 
-    smaller gradient, Lipschitzness of an operator, etc.
+    smaller gradient norm, Lipschitzness of an operator, etc.
     Args:
         lr0 (float, optional): the initial estimate (default: 1.0)
         count_first_it (bool, optional): to count the first iteration
@@ -19,8 +19,8 @@ class LineSearch():
             it is convenient to set to False to account for gradient
             computation (default: True)
         it_max (int, optional): maximal number of innert iterations per one call. 
-                                    Prevents from running for too long and 
-                                    from running into machine precision issues (default: 40)
+                                    Prevents from running for too long and from
+                                    running into machine precision issues (default: 50)
         tolerance (float, optional): the allowed amount of condition violation (default: 0)
     """
     
@@ -42,6 +42,7 @@ class LineSearch():
         self.it = 0
         self.optimizer = optimizer
         self.loss = optimizer.loss
+        self.use_prox = optimizer.use_prox
         
     def __call__(self, x=None, direction=None, x_new=None):
         pass
