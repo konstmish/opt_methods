@@ -24,7 +24,7 @@ class Shorr(Optimizer):
         if not 0.0 < gamma < 1.0:
             raise ValueError("Invalid gamma: {}".format(gamma))
         if L is None:
-            L = self.loss.smoothness()
+            L = self.loss.smoothness
             if L is None:
                 L = 1
         self.gamma = gamma

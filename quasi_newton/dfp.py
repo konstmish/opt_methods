@@ -21,7 +21,7 @@ class Dfp(Optimizer):
     def __init__(self, L=None, hess_estim=None, lr=1, *args, **kwargs):
         super(Dfp, self).__init__(*args, **kwargs)
         if L is None and hess_estim is None:
-            L = self.loss.smoothness()
+            L = self.loss.smoothness
             if L is None:
                 raise ValueError("Either smoothness constant L or Hessian estimate must be provided")
         self.lr = lr

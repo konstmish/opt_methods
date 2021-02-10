@@ -21,7 +21,7 @@ class Sr1(Optimizer):
     def __init__(self, L=None, hess_estim=None, lr=1, stability_const=0., *args, **kwargs):
         super(Sr1, self).__init__(*args, **kwargs)
         if L is None and hess_estim is None:
-            L = self.loss.smoothness()
+            L = self.loss.smoothness
             if L is None:
                 raise ValueError("Either smoothness constant L or Hessian estimate must be provided")
         if not 0 <= stability_const < 1:
