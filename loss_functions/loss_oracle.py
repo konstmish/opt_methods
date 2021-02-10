@@ -2,7 +2,7 @@ import copy
 import numpy as np
 import warnings
 
-from .prox_reg import ProxReg
+from .regularizer import Regularizer
         
 
 class Oracle():
@@ -27,7 +27,7 @@ class Oracle():
         self.regularizer = regularizer
         if (l1 > 0 or l2_in_prox) and regularizer is None:
             l2_prox = l2 if l2_in_prox else 0
-            self.regularizer = ProxReg(l1=l1, l2=l2_prox)
+            self.regularizer = Regularizer(l1=l1, l2=l2_prox)
         self._smoothness = None
         self._max_smoothness = None
         self._ave_smoothness = None
