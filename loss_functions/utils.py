@@ -3,6 +3,10 @@ import scipy
 
 
 def safe_sparse_add(a, b):
+    """
+    Implemenet a+b compatible with different types of input.
+    Supports scalars, numpy arrays and scipy.sparse objects.
+    """
     both_sparse = scipy.sparse.issparse(a) and scipy.sparse.issparse(b)
     one_is_scalar = isinstance(a, (int, float)) or isinstance(b, (int, float))
     if both_sparse or one_is_scalar:
