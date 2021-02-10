@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import os
 from pathlib import Path
 import pickle
+import warnings
 
 
 class Trace:
@@ -27,9 +28,10 @@ class Trace:
             print('Loss values have already been computed. Set .loss_vals = [] to recompute')
     
     def convert_its_to_epochs(self, batch_size=1):
-        its_per_epoch = self.loss.n / batch_size
         if self.its_converted_to_epochs:
+            warnings.warn('The iteration count has already been converted to epochs.')
             return
+        its_per_epoch = self.loss.n / batch_size
         self.its = np.asarray(self.its) / its_per_epoch
         self.its_converted_to_epochs = True
           
@@ -129,9 +131,9 @@ class StochasticTrace:
         return np.min([np.min(loss_vals) for loss_vals in self.loss_vals_all.values()])
     
     def convert_its_to_epochs(self, batch_size=1):
-        its_per_epoch = self.loss.n / batch_size
         if self.its_converted_to_epochs:
             return
+        its_per_epoch = self.loss.n / batch_size
         for seed, its in self.its_all.items():
             self.its_all[seed] = np.asarray(its) / its_per_epoch
         self.its = np.asarray(self.its) / its_per_epoch
