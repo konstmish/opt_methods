@@ -4,7 +4,7 @@ import scipy
 from .utils import safe_sparse_norm
 
 
-class ProxReg():
+class Regularizer():
     """
     A simple oracle class for regularizers that have
     proximal operator and can be evaluated during the training.
