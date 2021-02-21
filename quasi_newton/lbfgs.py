@@ -66,10 +66,12 @@ class Lbfgs(Optimizer):
             x_new = self.line_search(self.x, x_new)
         grad_new = self.loss.gradient(x_new)
         
-        rho_inv = self.loss.inner_prod(grad_new - self.grad, x_new - self.x)
+        s_new = x_new - self.x
+        y_new = grad_new - self.grad
+        rho_inv = self.loss.inner_prod(s_new, y_new)
         if rho_inv > 0:
-            self.x_difs.append(x_new - self.x)
-            self.grad_difs.append(grad_new - self.grad)
+            self.x_difs.append(s_new)
+            self.grad_difs.append(y_new)
             self.rhos.append(1 / rho_inv)
             
         if len(self.x_difs) > self.mem_size:
