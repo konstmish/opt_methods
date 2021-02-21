@@ -3,5 +3,6 @@ from .adgd_accel import AdgdAccel
 from .gd import Gd
 from .ig import Ig
 from .nesterov import Nesterov
+from .ogm import Ogm
 from .polyak import Polyak
 from .rest_nest import RestNest
