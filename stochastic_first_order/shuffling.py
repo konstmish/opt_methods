@@ -68,8 +68,8 @@ class Shuffling(StochasticOptimizer):
                     self.permutation = np.random.permutation(self.idx_with_copies)
                 self.sampled_permutations += 1
             self.i = 0
-        idx_perm = np.arange(self.i, min(len(self.permutation) - 1, self.i+self.batch_size))
-        idx = self.permutation[idx_perm]
+        i_max = min(len(self.permutation), self.i+self.batch_size)
+        idx = self.permutation[self.i:i_max]
         self.i += self.batch_size
         # since the objective is 1/n sum_{i=1}^n f_i(x) + l2/2*||x||^2
         # any incomplete minibatch should be normalized by batch_size

@@ -24,7 +24,7 @@ class Sgd(StochasticOptimizer):
             batch_size samples to obtain the gradient. May lead to slower iteration convergence (default: True)
     """
     def __init__(self, lr0=None, lr_max=np.inf, lr_decay_coef=0, lr_decay_power=1, it_start_decay=None,
-                 batch_size=1, avoid_cache_miss=True, importance_sampling=False, *args, **kwargs):
+                 batch_size=1, avoid_cache_miss=False, importance_sampling=False, *args, **kwargs):
         super(Sgd, self).__init__(*args, **kwargs)
         self.lr0 = lr0
         self.lr_max = lr_max
