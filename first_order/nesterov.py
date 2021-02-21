@@ -7,7 +7,8 @@ from optimizer import Optimizer
 class Nesterov(Optimizer):
     """
     Accelerated gradient descent with constant learning rate.
-    For details, see, e.g., http://mpawankumar.info/teaching/cdt-big-data/nesterov83.pdf
+    For details, see, e.g., 
+        http://mpawankumar.info/teaching/cdt-big-data/nesterov83.pdf
     
     Arguments:
         lr (float, optional): an estimate of the inverse smoothness constant
@@ -34,9 +35,9 @@ class Nesterov(Optimizer):
             alpha_new = 0.5 * (1 + np.sqrt(1 + 4*self.alpha**2))
             self.momentum = (self.alpha - 1) / alpha_new
             self.alpha = alpha_new
+            self.momentum = min(self.momentum, self.max_momentum)
         else:
             self.momentum = self.max_momentum
-        self.momentum = min(self.momentum, self.max_momentum)
         self.x_old = copy.deepcopy(self.x)
         self.grad = self.loss.gradient(self.x_nest)
         self.x = self.x_nest - self.lr*self.grad
