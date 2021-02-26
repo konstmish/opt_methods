@@ -147,7 +147,7 @@ class LogisticRegression(Oracle):
                 self._mat_vec_prod = Ax
                 self.x_last = x.copy()
         
-        return self._mat_vec_prod
+        return Ax
     
     def hess_vec_prod(self, x, v, grad_dif=False, eps=None):
         if grad_dif:
