@@ -30,7 +30,9 @@ def logsig(x):
 
 class LogisticRegression(Oracle):
     """
-    Logistic regression oracle that returns loss values, gradients and Hessians.
+    Logistic regression oracle that returns loss values, gradients, Hessians,
+    their stochastic analogues as well as smoothness constants. Supports both
+    sparse and dense iterates but is far from optimal for dense vectors.
     """
     
     def __init__(self, A, b, store_mat_vec_prod=True, *args, **kwargs):
@@ -44,35 +46,37 @@ class LogisticRegression(Oracle):
             # Transform labels {-1, 1} to {0, 1}
             self.b = (b+1) / 2
         else:
-            assert (np.unique(b) == [0, 1]).all()
-            self.b = b
-        self.n, self.dim = A.shape
+            # Check that only two unique values exist in b and replace them with 0's and 1's
+            assert len(np.unique(b)) == 2
+            self.b = 1. * (b == b[0])
         self.store_mat_vec_prod = store_mat_vec_prod
+        
+        self.n, self.dim = A.shape
         self.x_last = 0.
-        self.mat_vec_prod = np.zeros(self.n)
+        self._mat_vec_prod = np.zeros(self.n)
     
     def _value(self, x):
-        z = self.mat_vec_product(x)
+        Ax = self.mat_vec_product(x)
         regularization = 0
         if self.l2 != 0:
             regularization = self.l2 / 2 * safe_sparse_norm(x)**2
-        return np.mean(safe_sparse_multiply(1-self.b, z)-logsig(z)) + regularization
+        return np.mean(safe_sparse_multiply(1-self.b, Ax)-logsig(Ax)) + regularization
     
     def partial_value(self, x, idx, include_reg=True, normalization=None):
         batch_size = 1 if np.isscalar(idx) else len(idx)
         if normalization is None:
             normalization = batch_size
-        z = self.A[idx] @ x
-        if scipy.sparse.issparse(z):
-            z = z.toarray().ravel()
+        Ax = self.A[idx] @ x
+        if scipy.sparse.issparse(Ax):
+            Ax = Ax.toarray().ravel()
         regularization = 0
         if include_reg:
             regularization = self.l2 / 2 * safe_sparse_norm(x)**2
-        return np.sum(safe_sparse_multiply(1-self.b[idx], z)-logsig(z))/normalization + regularization
+        return np.sum(safe_sparse_multiply(1-self.b[idx], Ax)-logsig(Ax))/normalization + regularization
     
     def gradient(self, x):
-        z = self.mat_vec_product(x)
-        activation = scipy.special.expit(z)
+        Ax = self.mat_vec_product(x)
+        activation = scipy.special.expit(Ax)
         grad = safe_sparse_add(self.A.T@(activation-self.b)/self.n, self.l2*x)
         if scipy.sparse.issparse(x):
             grad = scipy.sparse.csr_matrix(grad).T
@@ -98,10 +102,10 @@ class LogisticRegression(Oracle):
             else:
                 normalization = batch_size * p[idx] * self.n
         A_idx = self.A[idx]
-        z = A_idx @ x
-        if scipy.sparse.issparse(z):
-            z = z.toarray().ravel()
-        activation = scipy.special.expit(z)
+        Ax = A_idx @ x
+        if scipy.sparse.issparse(Ax):
+            Ax = Ax.toarray().ravel()
+        activation = scipy.special.expit(Ax)
         if scipy.sparse.issparse(x):
             error = scipy.sparse.csr_matrix((activation-self.b[idx]) / normalization)
         else:
@@ -111,8 +115,8 @@ class LogisticRegression(Oracle):
         return self.l2*x + error*A_idx.T
     
     def hessian(self, x):
-        z = self.mat_vec_product(x)
-        activation = scipy.special.expit(z)
+        Ax = self.mat_vec_product(x)
+        activation = scipy.special.expit(Ax)
         weights = activation * (1-activation)
         A_weighted = safe_sparse_multiply(self.A.T, weights)
         return A_weighted@self.A/self.n + self.l2*np.eye(self.dim)
@@ -125,25 +129,25 @@ class LogisticRegression(Oracle):
         if normalization is None:
             normalization = batch_size
         A_idx = self.A[idx]
-        z = A_idx @ x
-        if scipy.sparse.issparse(z):
-            z = z.toarray().ravel()
-        activation = scipy.special.expit(z)
+        Ax = A_idx @ x
+        if scipy.sparse.issparse(Ax):
+            Ax = Ax.toarray().ravel()
+        activation = scipy.special.expit(Ax)
         weights = activation * (1-activation)
         A_weighted = safe_sparse_multiply(A_idx.T, weights)
         return A_weighted@A_idx/normalization + self.l2*np.eye(self.dim)
     
     def mat_vec_product(self, x):
         if not self.store_mat_vec_prod or not self.is_equal(x, self.x_last):
-            z = self.A @ x
-            if scipy.sparse.issparse(z):
-                z = z.toarray()
-            z = z.ravel()
+            Ax = self.A @ x
+            if scipy.sparse.issparse(Ax):
+                Ax = Ax.toarray()
+            Ax = Ax.ravel()
             if self.store_mat_vec_prod:
-                self.mat_vec_prod = z
+                self._mat_vec_prod = Ax
                 self.x_last = x.copy()
         
-        return self.mat_vec_prod
+        return self._mat_vec_prod
     
     def hess_vec_prod(self, x, v, grad_dif=False, eps=None):
         if grad_dif:
@@ -162,16 +166,6 @@ class LogisticRegression(Oracle):
         else:
             sing_val_max = scipy.sparse.linalg.svds(self.A, k=1, return_singular_vectors=False)[0]
             self._smoothness = 0.25*sing_val_max**2/self.n + self.l2
-#         else:            
-#             if self.dim > 1000 and self.n > 1000:
-#                 warnings.warn("The matrix is too large to estimate the smoothness constant, so average smoothness is used instead.")
-#                 self._smoothness = self.average_smoothness
-#             else:
-#                 if self.n < self.dim:
-#                     covariance = self.A@self.A.T/self.n
-#                 else:
-#                     covariance = self.A.T@self.A/self.n
-#                 self._smoothness = 0.25*np.max(la.eigvalsh(covariance)) + self.l2
         return self._smoothness
     
     @property
