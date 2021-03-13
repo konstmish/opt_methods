@@ -77,17 +77,22 @@ class LogisticRegression(Oracle):
     def gradient(self, x):
         Ax = self.mat_vec_product(x)
         activation = scipy.special.expit(Ax)
-        grad = safe_sparse_add(self.A.T@(activation-self.b)/self.n, self.l2*x)
+        if self.l2 == 0:
+            grad = self.A.T@(activation-self.b)/self.n
+        else:
+            grad = safe_sparse_add(self.A.T@(activation-self.b)/self.n, self.l2*x)
         if scipy.sparse.issparse(x):
             grad = scipy.sparse.csr_matrix(grad).T
         return grad
     
-    def stochastic_gradient(self, x, idx=None, batch_size=1, replace=False, normalization=None, importance_sampling=False, p=None):
+    def stochastic_gradient(self, x, idx=None, batch_size=1, replace=False, normalization=None, importance_sampling=False, p=None, rng=None):
         """
         normalization is needed for Shuffling optimizer
             to remove the bias of the last (incomplete) minibatch
         """
         if idx is None:
+            if rng is None:
+                rng = self.rng
             if p is None and importance_sampling:
                 if self._importance_probs is None:
                     self._importance_probs = self.individ_smoothness
@@ -121,9 +126,11 @@ class LogisticRegression(Oracle):
         A_weighted = safe_sparse_multiply(self.A.T, weights)
         return A_weighted@self.A/self.n + self.l2*np.eye(self.dim)
     
-    def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None):
+    def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None, rng=None):
         if idx is None:
-            idx = np.random.choice(self.n, size=batch_size, replace=replace)
+            if rng is None:
+                rng = self.rng
+            idx = rng.choice(self.n, size=batch_size, replace=replace)
         else:
             batch_size = 1 if np.isscalar(idx) else len(idx)
         if normalization is None:
@@ -138,15 +145,15 @@ class LogisticRegression(Oracle):
         return A_weighted@A_idx/normalization + self.l2*np.eye(self.dim)
     
     def mat_vec_product(self, x):
-        if not self.store_mat_vec_prod or not self.is_equal(x, self.x_last):
-            Ax = self.A @ x
-            if scipy.sparse.issparse(Ax):
-                Ax = Ax.toarray()
-            Ax = Ax.ravel()
-            if self.store_mat_vec_prod:
-                self._mat_vec_prod = Ax
-                self.x_last = x.copy()
-        
+        if self.store_mat_vec_prod and self.is_equal(x, self.x_last):
+            return self._mat_vec_prod
+        Ax = self.A @ x
+        if scipy.sparse.issparse(Ax):
+            Ax = Ax.toarray()
+        Ax = Ax.ravel()
+        if self.store_mat_vec_prod:
+            self._mat_vec_prod = Ax
+            self.x_last = x.copy()
         return Ax
     
     def hess_vec_prod(self, x, v, grad_dif=False, eps=None):

@@ -11,7 +11,7 @@ class Oracle():
     gradients and its Hessians as functions that take parameters as input.
     Takes as input the values of l1 and l2 regularization.
     """
-    def __init__(self, l1=0, l2=0, l2_in_prox=False, regularizer=None):
+    def __init__(self, l1=0, l2=0, l2_in_prox=False, regularizer=None, seed=42):
         if l1 < 0.0:
             raise ValueError("Invalid value for l1 regularization: {}".format(l1))
         if l2 < 0.0:
@@ -25,9 +25,12 @@ class Oracle():
         self.x_opt = None
         self.f_opt = np.inf
         self.regularizer = regularizer
+        self.seed = seed
+        
         if (l1 > 0 or l2_in_prox) and regularizer is None:
             l2_prox = l2 if l2_in_prox else 0
             self.regularizer = Regularizer(l1=l1, l2=l2_prox)
+        self.rng = np.random.default_rng(seed)
         self._smoothness = None
         self._max_smoothness = None
         self._ave_smoothness = None
