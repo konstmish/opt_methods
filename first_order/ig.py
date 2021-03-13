@@ -29,9 +29,11 @@ class Ig(Optimizer):
         epoch_start_decay (int, optional): how many epochs the step-size is kept constant
             By default, will be set to have about 2.5% of iterations with the step-size equal to lr0
         batch_size (int, optional): the number of samples from the function to be used at each iteration
+        update_trace_at_epoch_end (bool, optional): save progress only at the end of an epoch, which 
+            avoids bad iterates
     """
     def __init__(self, prox_every_it=False, lr0=None, lr_max=np.inf, lr_decay_coef=0, lr_decay_power=1, 
-                 epoch_start_decay=None, batch_size=1, *args, **kwargs):
+                 epoch_start_decay=None, batch_size=1, update_trace_at_epoch_end=True, *args, **kwargs):
         super(Ig, self).__init__(*args, **kwargs)
         self.prox_every_it = prox_every_it
         self.lr0 = lr0
@@ -39,30 +41,40 @@ class Ig(Optimizer):
         self.lr_decay_coef = lr_decay_coef
         self.lr_decay_power = lr_decay_power
         self.epoch_start_decay = epoch_start_decay
+        self.batch_size = batch_size
+        self.update_trace_at_epoch_end = update_trace_at_epoch_end
+        
         if epoch_start_decay is None and np.isfinite(self.epoch_max):
             self.epoch_start_decay = 1 + self.epoch_max // 40
-        self.batch_size = batch_size
+        elif epoch_start_decay is None:
+            self.epoch_start_decay = 1
+        self.steps_per_epoch = math.ceil(self.loss.n/batch_size)
         
     def step(self):
-        idx = np.arange(self.i, self.i + self.batch_size)
-        idx %= self.loss.n
+        i_max = min(self.loss.n, self.i+self.batch_size)
+        idx = np.arange(self.i, i_max)
         self.i += self.batch_size
-        self.i %= self.loss.n
-        self.grad = self.loss.stochastic_gradient(self.x, idx=idx)
+        if self.i >= self.loss.n:
+            self.i = 0
+        normalization = self.loss.n / self.steps_per_epoch
+        self.grad = self.loss.stochastic_gradient(self.x, idx=idx, normalization=normalization)
+        
         denom_const = 1 / self.lr0
-        lr_decayed = 1 / (denom_const + self.lr_decay_coef*max(0, self.finished_epochs-self.epoch_start_decay)**self.lr_decay_power)
-        if lr_decayed < 0:
-            lr_decayed = np.inf
+        it_decrease = self.steps_per_epoch * max(0, self.finished_epochs-self.epoch_start_decay)
+        lr_decayed = 1 / (denom_const + self.lr_decay_coef*it_decrease**self.lr_decay_power)
         self.lr = min(lr_decayed, self.lr_max)
+        
         self.x -= self.lr * self.grad
-        end_of_epoch = self.it%self.steps_per_permutation == self.steps_per_permutation-1
+        end_of_epoch = self.i == 0
+        self.finished_epochs += end_of_epoch
         if self.prox_every_it and self.use_prox:
             self.x = self.loss.regularizer.prox(self.x, self.lr)
         elif end_of_epoch and self.use_prox:
-            pass
+            self.x = self.loss.regularizer.prox(self.x, self.lr * self.steps_per_epoch)
     
     def init_run(self, *args, **kwargs):
         super(Ig, self).init_run(*args, **kwargs)
+        self.finished_epochs = 0
         if self.lr0 is None:
             self.lr0 = 1 / self.loss.batch_smoothness(batch_size)
         self.i = 0
