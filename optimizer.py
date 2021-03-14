@@ -16,25 +16,32 @@ class Optimizer:
     """
     Base class for optimization algorithms. Provides methods to run them,
     save the trace and plot the results.
+    
+    Arguments:
+        label (string, optional): label to be passed to the Trace attribute (default: None)
     """
-    def __init__(self, loss, t_max=np.inf, it_max=np.inf, trace_len=200, tolerance=0, line_search=None, use_prox=True):
-        if t_max is np.inf and it_max is np.inf:
-            it_max = 100
-            print('The number of iterations is set to 100.')
+    def __init__(self, loss, trace_len=200, tolerance=0, line_search=None, use_prox=True,
+                 save_first_iterations=10, label=None):
         self.loss = loss
-        self.t_max = t_max
-        self.it_max = it_max
         self.trace_len = trace_len
         self.tolerance = tolerance
         self.line_search = line_search
         if line_search is not None:
             line_search.reset(self)
         self.use_prox = use_prox and (self.loss.regularizer is not None)
+        self.save_first_iterations = save_first_iterations
+        self.label = label
+        
         self.initialized = False
         self.x_old_tol = None
-        self.trace = Trace(loss=loss)
+        self.trace = Trace(loss=loss, label=label)
     
-    def run(self, x0):
+    def run(self, x0, t_max=np.inf, it_max=np.inf):
+        if t_max is np.inf and it_max is np.inf:
+            it_max = 100
+            print(f'The number of iterations is set to {it_max}.')
+        self.t_max = t_max
+        self.it_max = it_max
         if not self.initialized:
             self.init_run(x0)
             self.initialized = True
@@ -75,12 +82,18 @@ class Optimizer:
         self.iterations_progress = 0
         self.max_progress = 0
         
-    def save_checkpoint(self, first_iterations=10):
+    def should_update_trace(self):
+        if self.it <= self.save_first_iterations:
+            return True
+        self.time_progress = int((self.trace_len-self.save_first_iterations) * self.t / self.t_max)
+        self.iterations_progress = int((self.trace_len-self.save_first_iterations) * (self.it / self.it_max))
+        enough_progress = max(self.time_progress, self.iterations_progress) > self.max_progress
+        return enough_progress
+        
+    def save_checkpoint(self):
         self.it += 1
         self.t = time.perf_counter() - self.t_start
-        self.time_progress = int((self.trace_len-first_iterations) * self.t / self.t_max)
-        self.iterations_progress = int((self.trace_len-first_iterations) * (self.it / self.it_max))
-        if (max(self.time_progress, self.iterations_progress) > self.max_progress) or (self.it <= first_iterations):
+        if self.should_update_trace():
             self.update_trace()
         self.max_progress = max(self.time_progress, self.iterations_progress)
         
@@ -98,7 +111,7 @@ class Optimizer:
     def reset(self):
         self.initialized = False
         self.x_old_tol = None
-        self.trace = Trace(loss=loss)
+        self.trace = Trace(loss=loss, label=self.label)
 
         
 class StochasticOptimizer(Optimizer):
@@ -114,7 +127,7 @@ class StochasticOptimizer(Optimizer):
             np.random.seed(SEED)
             self.seeds = np.random.choice(MAX_SEED, size=n_seeds, replace=False)
         self.finished_seeds = []
-        self.trace = StochasticTrace(loss=loss)
+        self.trace = StochasticTrace(loss=loss, label=label)
         self.seed = None
     
     def run(self, *args, **kwargs):

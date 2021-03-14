@@ -11,8 +11,11 @@ class Trace:
     """
     Stores the logs of running an optimization method
     and plots the trajectory.
+    
+    Arguments:
+        label (string, optional): label for convergence plots (default: None)
     """
-    def __init__(self, loss):
+    def __init__(self, loss, label=None):
         self.loss = loss
         self.xs = []
         self.ts = []
@@ -20,6 +23,7 @@ class Trace:
         self.loss_vals = []
         self.its_converted_to_epochs = False
         self.ls_its = None
+        self.label = label
     
     def compute_loss_of_iterates(self):
         if len(self.loss_vals) == 0:
@@ -35,19 +39,22 @@ class Trace:
         self.its = np.asarray(self.its) / its_per_epoch
         self.its_converted_to_epochs = True
           
-    def plot_losses(self, its=None, f_opt=None, markevery=None, ls_its=False, *args, **kwargs):
+    def plot_losses(self, its=None, f_opt=None, label=None, markevery=None, ls_its=False, *args, **kwargs):
         if its is None:
             its = self.ls_its if ls_its and self.ls_its is not None else self.its
-        if len(self.loss_vals) == 0:
-            self.compute_loss_of_iterates()
         if f_opt is None:
             f_opt = self.loss.f_opt
+        if label is None:
+            label = self.label
         if markevery is None:
             markevery = max(1, len(self.loss_vals)//20)
-        plt.plot(its, self.loss_vals - f_opt, markevery=markevery, *args, **kwargs)
+        
+        if len(self.loss_vals) == 0:
+            self.compute_loss_of_iterates()
+        plt.plot(its, self.loss_vals - f_opt, label=label, markevery=markevery, *args, **kwargs)
         plt.ylabel(r'$f(x)-f^*$')
         
-    def plot_distances(self, its=None, x_opt=None, markevery=None, ls_its=False, *args, **kwargs):
+    def plot_distances(self, its=None, x_opt=None, label=None, markevery=None, ls_its=False, *args, **kwargs):
         if its is None:
             its = self.ls_its if ls_its and self.ls_its is not None else self.its
         if x_opt is None:
@@ -55,11 +62,14 @@ class Trace:
                 x_opt = self.xs[-1]
             else:
                 x_opt = self.loss.x_opt
+        if label is None:
+            label = self.label
         if markevery is None:
             markevery = max(1, len(self.xs)//20)
+            
         dists = [self.loss.norm(x-x_opt)**2 for x in self.xs]
         its = self.ls_its if ls_its and self.ls_its else self.its
-        plt.plot(its, dists, markevery=markevery, *args, **kwargs)
+        plt.plot(its, dists, label=label, markevery=markevery, *args, **kwargs)
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
         
     @property
@@ -139,7 +149,7 @@ class StochasticTrace:
         self.its = np.asarray(self.its) / its_per_epoch
         self.its_converted_to_epochs = True
         
-    def plot_losses(self, its=None, f_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
+    def plot_losses(self, its=None, f_opt=None, log_std=True, label=None, markevery=None, alpha=0.25, *args, **kwargs):
         if not self.loss_is_computed:
             self.compute_loss_of_iterates()
         if its is None:
@@ -157,15 +167,17 @@ class StochasticTrace:
             y_ave = np.mean(y, axis=0)
             y_std = np.std(y, axis=0)
             lower, upper = y_ave - y_std, y_ave + y_std
+        if label is None:
+            label = self.label
         if markevery is None:
             markevery = max(1, len(y_ave)//20)
             
-        plot = plt.plot(its, y_ave, markevery=markevery, *args, **kwargs)
+        plot = plt.plot(its, y_ave, label=label, markevery=markevery, *args, **kwargs)
         if len(self.loss_vals_all.keys()) > 1:
             plt.fill_between(its, lower, upper, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$f(x)-f^*$')
         
-    def plot_distances(self, its=None, x_opt=None, log_std=True, markevery=None, alpha=0.25, *args, **kwargs):
+    def plot_distances(self, its=None, x_opt=None, log_std=True, label=None, markevery=None, alpha=0.25, *args, **kwargs):
         if its is None:
             its = np.mean([np.asarray(its_) for its_ in self.its_all.values()], axis=0)
         if x_opt is None:
@@ -186,10 +198,12 @@ class StochasticTrace:
             y_ave = np.mean(y, axis=0)
             y_std = np.std(y, axis=0)
             lower, upper = y_ave - y_std, y_ave + y_std
+        if label is None:
+            label = self.label
         if markevery is None:
             markevery = max(1, len(y_ave)//20)
             
-        plot = plt.plot(its, y_ave, markevery=markevery, *args, **kwargs)
+        plot = plt.plot(its, y_ave, label=label, markevery=markevery, *args, **kwargs)
         if len(self.loss_vals_all.keys()) > 1:
             plt.fill_between(it_ave, lower, upper, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
