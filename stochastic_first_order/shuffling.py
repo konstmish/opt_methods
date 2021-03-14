@@ -31,9 +31,13 @@ class Shuffling(StochasticOptimizer):
         epoch_start_decay (int, optional): how many epochs the step-size is kept constant
             By default, will be set to have about 2.5% of iterations with the step-size equal to lr0
         batch_size (int, optional): the number of samples from the function to be used at each iteration
+        importance_sampling (bool, optional): use importance sampling to speed up convergence
+        update_trace_at_epoch_end (bool, optional): save progress only at the end of an epoch, which 
+            avoids bad iterates
     """
     def __init__(self, reshuffle=False, prox_every_it=False, lr0=None, lr_max=np.inf, lr_decay_coef=0,
-                 lr_decay_power=1, epoch_start_decay=1, batch_size=1, importance_sampling=False, *args, **kwargs):
+                 lr_decay_power=1, epoch_start_decay=1, batch_size=1, importance_sampling=False, 
+                 update_trace_at_epoch_end=True, *args, **kwargs):
         super(Shuffling, self).__init__(*args, **kwargs)
         self.reshuffle = reshuffle
         self.prox_every_it = prox_every_it
@@ -44,6 +48,7 @@ class Shuffling(StochasticOptimizer):
         self.epoch_start_decay = epoch_start_decay
         self.batch_size = batch_size
         self.importance_sampling = importance_sampling
+        self.update_trace_at_epoch_end = update_trace_at_epoch_end
         
         self.steps_per_epoch = math.ceil(self.loss.n/batch_size)
         self.epoch_max = self.it_max // self.steps_per_epoch
@@ -71,7 +76,7 @@ class Shuffling(StochasticOptimizer):
         i_max = min(len(self.permutation), self.i+self.batch_size)
         idx = self.permutation[self.i:i_max]
         self.i += self.batch_size
-        # since the objective is 1/n sum_{i=1}^n f_i(x) + l2/2*||x||^2
+        # since the objective is 1/n sum_{i=1}^n (f_i(x) + l2/2*||x||^2)
         # any incomplete minibatch should be normalized by batch_size
         if not self.importance_sampling:
             normalization = self.loss.n / self.steps_per_epoch
@@ -87,6 +92,18 @@ class Shuffling(StochasticOptimizer):
         if end_of_epoch and self.use_prox:
             self.x = self.loss.regularizer.prox(self.x, self.lr * self.steps_per_epoch)
             self.finished_epochs += 1
+            
+    def should_update_trace(self):
+        if not self.update_trace_at_epoch_end:
+            super(Shuffling, self).should_update_trace()
+        if self.it <= self.save_first_iterations:
+            return True
+        if self.it%self.steps_per_epoch != 0:
+            return False
+        self.time_progress = int((self.trace_len-self.save_first_iterations) * self.t / self.t_max)
+        self.iterations_progress = int((self.trace_len-self.save_first_iterations) * (self.it / self.it_max))
+        enough_progress = max(self.time_progress, self.iterations_progress) > self.max_progress
+        return enough_progress
     
     def init_run(self, *args, **kwargs):
         super(Shuffling, self).init_run(*args, **kwargs)
