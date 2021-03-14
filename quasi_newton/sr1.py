@@ -6,8 +6,11 @@ from optimizer import Optimizer
 class Sr1(Optimizer):
     """
     Quasi-Newton algorithm with Symmetric Rank 1 (SR1) update. See 
-    https://arxiv.org/pdf/2002.00657.pdf
+        https://arxiv.org/pdf/2002.00657.pdf
     for a formal description and convergence proof of a similar method.
+    
+    The stability condition is from
+        p. 145 in (J. Nocedal and S. J. Wright, "Numerical Optimization", 2nd edtion)
     
     Arguments:
         L (float, optional): an upper bound on the smoothness constant
@@ -15,10 +18,10 @@ class Sr1(Optimizer):
         hess_estim (float array of shape (dim, dim)): initial Hessian estimate
         lr (float, optional): stepsize (default: 1)
         stability_const (float, optional): a constant from [0, 1) that ensures a curvature
-            condition before updating the Hessian-inverse estimate (default: 0.)
+            condition before updating the Hessian-inverse estimate (default: 1e-8)
     """
     
-    def __init__(self, L=None, hess_estim=None, lr=1, stability_const=0., *args, **kwargs):
+    def __init__(self, L=None, hess_estim=None, lr=1, stability_const=1e-8, *args, **kwargs):
         super(Sr1, self).__init__(*args, **kwargs)
         if L is None and hess_estim is None:
             L = self.loss.smoothness
@@ -46,7 +49,7 @@ class Sr1(Optimizer):
         B_inv_y = self.B_inv @ y
         y_B_inv_y = y @ B_inv_y
         y_s = y @ s
-        if abs(y_s-sBs) > self.stability_const * self.loss.norm(s) * self.loss.norm(y-Bs):
+        if abs(y_s-sBs) > self.stability_const * self.loss.norm(s) * self.loss.norm(y-Bs) and y_s!=y_B_inv_y:
             self.B += np.outer(y-Bs, y-Bs) / (y_s-sBs)
             self.B_inv += np.outer(s-B_inv_y, s-B_inv_y) / (y_s-y_B_inv_y)
         self.x = x_new

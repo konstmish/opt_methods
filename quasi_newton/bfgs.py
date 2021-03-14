@@ -45,10 +45,11 @@ class Bfgs(Optimizer):
             Bs = self.B @ s
             sBs = s @ Bs
             self.B += np.outer(y, y)/y_s - np.outer(Bs, Bs)/sBs
-        B_inv_y = self.B_inv @ y
-        y_B_inv_y = y @ B_inv_y
-        self.B_inv += (y_s + y_B_inv_y) * np.outer(s, s) / y_s**2
-        self.B_inv -= (np.outer(B_inv_y, s) + np.outer(s, B_inv_y)) / y_s
+        if y_s > 0:
+            B_inv_y = self.B_inv @ y
+            y_B_inv_y = y @ B_inv_y
+            self.B_inv += (y_s + y_B_inv_y) * np.outer(s, s) / y_s**2
+            self.B_inv -= (np.outer(B_inv_y, s) + np.outer(s, B_inv_y)) / y_s
         self.x = x_new
     
     def init_run(self, *args, **kwargs):
