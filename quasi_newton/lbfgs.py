@@ -24,7 +24,7 @@ class Lbfgs(Optimizer):
     def __init__(self, L=None, hess_estim=None, inv_hess_estim=None, lr=1, mem_size=1, adaptive_init=False, *args, **kwargs):
         super(Lbfgs, self).__init__(*args, **kwargs)
         if L is None and hess_estim is None and inv_hess_estim is None:
-            L = self.loss.smoothness()
+            L = self.loss.smoothness
             if L is None:
                 raise ValueError("Either smoothness constant L or Hessian/inverse-Hessian estimate must be provided")
         self.L = L
