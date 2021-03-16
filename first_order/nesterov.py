@@ -55,4 +55,4 @@ class Nesterov(Optimizer):
             kappa = (1/self.lr)/self.mu
             self.max_momentum = (np.sqrt(kappa)-1) / (np.sqrt(kappa)+1)
         else:
-            self.max_momentum = 1.
+            self.max_momentum = 1. - 1e-8

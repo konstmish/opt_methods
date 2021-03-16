@@ -27,7 +27,10 @@ class Adgd(Optimizer):
     def estimate_new_stepsize(self):
         if self.grad_old is not None:
             L = self.loss.norm(self.grad-self.grad_old) / self.loss.norm(self.x-self.x_old)
-            lr_new = min(np.sqrt(1+self.theta) * self.lr, 0.5/L)
+            if L == 0:
+                lr_new = np.sqrt(1+self.theta) * self.lr
+            else:
+                lr_new = min(np.sqrt(1+self.theta) * self.lr, 0.5/L)
             self.theta = lr_new / self.lr
             self.lr = lr_new
     
@@ -35,7 +38,7 @@ class Adgd(Optimizer):
         super(Adgd, self).init_run(*args, **kwargs)
         self.lr = self.lr0
         self.trace.lrs = [self.lr]
-        self.theta = np.inf
+        self.theta = 1e12
         self.grad_old = None
         
     def update_trace(self):
