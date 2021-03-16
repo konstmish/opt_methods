@@ -2,7 +2,6 @@ import scipy
 import numpy as np
 import warnings
 
-import numpy.linalg as la
 from sklearn.utils.extmath import row_norms
 
 from .loss_oracle import Oracle
@@ -27,12 +26,13 @@ class LogSumExp(Oracle):
     Sparse matrices are currently not supported as it is not clear if it is relevant to practice.
     
     Arguments:
+        max_smoothing (float, optional): the smoothing constant of the log-sum-exp term
         least_squares_term (bool, optional): add term 0.5*||Ax-b||^2 to the objective (default: False)
     """
     
-    def __init__(self, least_squares_term=False, A=None, b=None, n=None, dim=None, store_mat_vec_prod=True,
-                 store_AT_A=True, store_softmax=True, *args, **kwargs):
+    def __init__(self, max_smoothing=1, least_squares_term=False, A=None, b=None, n=None, dim=None, store_mat_vec_prod=True, store_softmax=True, *args, **kwargs):
         super(LogSumExp, self).__init__(*args, **kwargs)
+        self.max_smoothing = max_smoothing
         self.least_squares_term = least_squares_term
         self.A = A
         self.b = np.asarray(b)
@@ -45,7 +45,6 @@ class LogSumExp(Oracle):
             self.A -= self.gradient(np.zeros(dim))
             self.value(np.zeros(dim))
         self.store_mat_vec_prod = store_mat_vec_prod
-        self.store_AT_A = store_AT_A
         self.store_softmax = store_softmax
         
         self.n, self.dim = self.A.shape
@@ -60,7 +59,7 @@ class LogSumExp(Oracle):
             regularization = self.l2/2 * self.norm(x)**2
         if self.least_squares_term:
             regularization += 1/2 * np.linalg.norm(Ax)**2
-        return scipy.special.logsumexp(Ax - self.b) + regularization
+        return self.max_smoothing*scipy.special.logsumexp((Ax-self.b/self.max_smoothing)) + regularization
     
     def gradient(self, x):
         Ax = self.mat_vec_product(x)
@@ -76,9 +75,9 @@ class LogSumExp(Oracle):
     
     def hessian(self, x):
         Ax = self.mat_vec_product(x)
-        hess1 = self.A.T * (self.softmax + 1) @ self.A
+        hess1 = self.A.T * (self.softmax/self.max_smoothing + 1) @ self.A
         g = softmax @ self.A
-        hess2 = -np.outer(g, g)
+        hess2 = -np.outer(g, g) / self.max_smoothing
         return hess1 + hess2 + self.l2 * np.eye(self.dim)
     
     def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None):
@@ -102,7 +101,7 @@ class LogSumExp(Oracle):
         if self.store_softmax and self.is_equal(x, self.x_last_soft):
             return self._softmax
         
-        softmax = scipy.special.softmax(Ax - self.b)
+        softmax = scipy.special.softmax((Ax-self.b) / self.max_smoothing)
         if self.store_softmax and x is not None:
             self._softmax = softmax
             self.x_last_soft = x.copy()
@@ -113,8 +112,15 @@ class LogSumExp(Oracle):
         
     @property
     def smoothness(self):
-        if self._smoothness is None:
-            self._smoothness = 2*np.linalg.norm(self.A) + self.l2
+        if self._smoothness is not None:
+            return self._smoothness
+        matrix_coef = 1 + self.least_squares_term
+        if self.dim > 20000 and self.n > 20000:
+            warnings.warn("The matrix is too large to estimate the smoothness constant, so Frobeniius estimate is used instead.")
+            self._smoothness = matrix_coef*np.linalg.norm(self.A, ord='fro')**2 + self.l2
+        else:
+            sing_val_max = scipy.sparse.linalg.svds(self.A, k=1, return_singular_vectors=False)[0]
+            self._smoothness = matrix_coef*sing_val_max**2 + self.l2
         return self._smoothness
     
     @property
