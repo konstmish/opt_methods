@@ -2,7 +2,6 @@ import scipy
 import numpy as np
 import warnings
 
-import numpy.linalg as la
 from numba import njit
 from sklearn.utils.extmath import row_norms, safe_sparse_dot
 
@@ -168,8 +167,11 @@ class LogisticRegression(Oracle):
         if self._smoothness is not None:
             return self._smoothness
         if self.dim > 20000 and self.n > 20000:
-            warnings.warn("The matrix is too large to estimate the smoothness constant, so average smoothness is used instead.")
-            self._smoothness = self.average_smoothness
+            warnings.warn("The matrix is too large to estimate the smoothness constant, so Frobenius estimate is used instead.")
+            if scipy.sparse.issparse(self.A):
+                self._smoothness = 0.25*scipy.sparse.linalg.norm(self.A, ord='fro')**2/self.n + self.l2
+            else:
+                self._smoothness = 0.25*np.linalg.norm(self.A, ord='fro')**2/self.n + self.l2
         else:
             sing_val_max = scipy.sparse.linalg.svds(self.A, k=1, return_singular_vectors=False)[0]
             self._smoothness = 0.25*sing_val_max**2/self.n + self.l2
