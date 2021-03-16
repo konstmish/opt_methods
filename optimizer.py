@@ -20,15 +20,15 @@ class Optimizer:
     Arguments:
         label (string, optional): label to be passed to the Trace attribute (default: None)
     """
-    def __init__(self, loss, trace_len=200, tolerance=0, line_search=None, use_prox=True,
+    def __init__(self, loss, trace_len=200, use_prox=True, tolerance=0, line_search=None,
                  save_first_iterations=10, label=None):
         self.loss = loss
         self.trace_len = trace_len
+        self.use_prox = use_prox and (self.loss.regularizer is not None)
         self.tolerance = tolerance
         self.line_search = line_search
         if line_search is not None:
             line_search.reset(self)
-        self.use_prox = use_prox and (self.loss.regularizer is not None)
         self.save_first_iterations = save_first_iterations
         self.label = label
         
