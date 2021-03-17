@@ -36,12 +36,14 @@ class Optimizer:
         self.x_old_tol = None
         self.trace = Trace(loss=loss, label=label)
     
-    def run(self, x0, t_max=np.inf, it_max=np.inf):
+    def run(self, x0, t_max=np.inf, it_max=np.inf, ls_it_max=None):
         if t_max is np.inf and it_max is np.inf:
             it_max = 100
             print(f'The number of iterations is set to {it_max}.')
         self.t_max = t_max
         self.it_max = it_max
+        if ls_it_max is None:
+            self.ls_it_max = it_max
         if not self.initialized:
             self.init_run(x0)
             self.initialized = True
@@ -56,6 +58,8 @@ class Optimizer:
         
     def check_convergence(self):
         no_it_left = self.it >= self.it_max
+        if self.line_search is not None:
+            no_it_left = no_it_left or (self.line_search.it >= self.ls_it_max)
         no_time_left = time.perf_counter()-self.t_start >= self.t_max
         if self.tolerance > 0:
             tolerance_met = self.x_old_tol is not None and self.loss.norm(self.x-self.x_old_tol) < self.tolerance
@@ -87,11 +91,16 @@ class Optimizer:
             return True
         self.time_progress = int((self.trace_len-self.save_first_iterations) * self.t / self.t_max)
         self.iterations_progress = int((self.trace_len-self.save_first_iterations) * (self.it / self.it_max))
+        if self.line_search is not None:
+            ls_it = self.line_search.it
+            self.iterations_progress = max(self.iterations_progress, int((self.trace_len-self.save_first_iterations) * (ls_it / self.it_max)))
         enough_progress = max(self.time_progress, self.iterations_progress) > self.max_progress
         return enough_progress
         
     def save_checkpoint(self):
         self.it += 1
+        if self.line_search is not None:
+            self.ls_it = self.line_search.it
         self.t = time.perf_counter() - self.t_start
         if self.should_update_trace():
             self.update_trace()
