@@ -31,7 +31,7 @@ class Shorr(Optimizer):
         self.L = L
         self.B = 1/np.sqrt(self.L) * np.eye(self.loss.dim)
         if self.line_search is None:
-            self.line_search = BestGrid(lr0=1.0, start_with_prev_lr=False, 
+            self.line_search = BestGrid(lr0=1.0, start_with_prev_lr=False,
                                         increase_many_times=True)
             self.line_search.loss = self.loss
         
