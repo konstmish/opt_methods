@@ -9,17 +9,16 @@ class BestGrid(LineSearch):
         over {lr * backtracking ** (1 - pow): pow=0, 1, ...} where lr is the previous value
     Arguments:
         lr_max (float, optional): the maximal stepsize, useful for second-order 
-                                      and quasi-Newton methods (default: np.inf)
+            and quasi-Newton methods (default: np.inf)
         functional (boolean, optional): use functional values to check optimality. 
-                                            Otherwise, gradient norm is used, which 
-                                            might be cheaper (default: False)
+            Otherwise, gradient norm is used (default: True)
         start_with_prev_lr (boolean, optional): initialize lr with the previous value (default: True)
         increase_lr (boolean, optional): multiply the previous lr by 1/backtracking (default: True)
         increase_many_times (boolean, optional): multiply the lr by 1/backtracking until it's the best (default: False)
         backtracking (float, optional): constant to multiply the estimated stepsize by (default: 0.5)
     """
     
-    def __init__(self, lr_max=np.inf, functional=False, start_with_prev_lr=False, increase_lr=True,
+    def __init__(self, lr_max=np.inf, functional=True, start_with_prev_lr=False, increase_lr=True,
                  increase_many_times=True, backtracking=0.5, *args, **kwargs):
         super(BestGrid, self).__init__(*args, **kwargs)
         self.lr_max = lr_max
