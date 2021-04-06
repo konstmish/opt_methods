@@ -13,17 +13,19 @@ class Trace:
     and plots the trajectory.
     
     Arguments:
+        loss (Oracle): the optimized loss class
         label (string, optional): label for convergence plots (default: None)
     """
     def __init__(self, loss, label=None):
         self.loss = loss
+        self.label = label
+        
         self.xs = []
         self.ts = []
         self.its = []
         self.loss_vals = []
         self.its_converted_to_epochs = False
         self.ls_its = None
-        self.label = label
     
     def compute_loss_of_iterates(self):
         if len(self.loss_vals) == 0:
@@ -114,8 +116,10 @@ class StochasticTrace:
     Class that stores the logs of running a stochastic
     optimization method and plots the trajectory.
     """
-    def __init__(self, loss):
+    def __init__(self, loss, label=None):
         self.loss = loss
+        self.label = label
+        
         self.xs_all = {}
         self.ts_all = {}
         self.its_all = {}
