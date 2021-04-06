@@ -38,15 +38,18 @@ class LogisticRegression(Oracle):
         super(LogisticRegression, self).__init__(*args, **kwargs)
         self.A = A
         b = np.asarray(b)
-        if (np.unique(b) == [1, 2]).all():
+        b_unique = np.unique(b)
+        # check that only two unique values exist in b
+        if len(b_unique) > 2:
+            raise ValueError('The number of classes must be no more than 2 for binary classification.')
+        if (b_unique == [1, 2]).all():
             # Transform labels {1, 2} to {0, 1}
             self.b = b - 1
-        elif (np.unique(b) == [-1, 1]).all():
+        elif (b_unique == [-1, 1]).all():
             # Transform labels {-1, 1} to {0, 1}
             self.b = (b+1) / 2
         else:
-            # Check that only two unique values exist in b and replace them with 0's and 1's
-            assert len(np.unique(b)) == 2
+            # replace class labels with 0's and 1's
             self.b = 1. * (b == b[0])
         self.store_mat_vec_prod = store_mat_vec_prod
         
@@ -61,7 +64,7 @@ class LogisticRegression(Oracle):
             regularization = self.l2 / 2 * safe_sparse_norm(x)**2
         return np.mean(safe_sparse_multiply(1-self.b, Ax)-logsig(Ax)) + regularization
     
-    def partial_value(self, x, idx, include_reg=True, normalization=None):
+    def partial_value(self, x, idx, include_reg=True, normalization=None, return_idx=False):
         batch_size = 1 if np.isscalar(idx) else len(idx)
         if normalization is None:
             normalization = batch_size
@@ -71,7 +74,10 @@ class LogisticRegression(Oracle):
         regularization = 0
         if include_reg:
             regularization = self.l2 / 2 * safe_sparse_norm(x)**2
-        return np.sum(safe_sparse_multiply(1-self.b[idx], Ax)-logsig(Ax))/normalization + regularization
+        value = np.sum(safe_sparse_multiply(1-self.b[idx], Ax)-logsig(Ax))/normalization + regularization
+        if return_idx:
+            return (value, idx)
+        return value
     
     def gradient(self, x):
         Ax = self.mat_vec_product(x)
@@ -84,7 +90,8 @@ class LogisticRegression(Oracle):
             grad = scipy.sparse.csr_matrix(grad).T
         return grad
     
-    def stochastic_gradient(self, x, idx=None, batch_size=1, replace=False, normalization=None, importance_sampling=False, p=None, rng=None):
+    def stochastic_gradient(self, x, idx=None, batch_size=1, replace=False, normalization=None, 
+                            importance_sampling=False, p=None, rng=None, return_idx=False):
         """
         normalization is needed for Shuffling optimizer
             to remove the bias of the last (incomplete) minibatch
@@ -115,8 +122,12 @@ class LogisticRegression(Oracle):
         else:
             error = (activation-self.b[idx]) / normalization
         if not np.isscalar(error):
-            return self.l2*x + (error@A_idx).T
-        return self.l2*x + error*A_idx.T
+            grad = self.l2*x + (error@A_idx).T
+        else:
+            grad = self.l2*x + error*A_idx.T
+        if return_idx:
+            return (grad, idx)
+        return grad
     
     def hessian(self, x):
         Ax = self.mat_vec_product(x)
@@ -125,7 +136,8 @@ class LogisticRegression(Oracle):
         A_weighted = safe_sparse_multiply(self.A.T, weights)
         return A_weighted@self.A/self.n + self.l2*np.eye(self.dim)
     
-    def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None, rng=None):
+    def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None, 
+                           rng=None, return_idx=False):
         if idx is None:
             if rng is None:
                 rng = self.rng
@@ -141,7 +153,10 @@ class LogisticRegression(Oracle):
         activation = scipy.special.expit(Ax)
         weights = activation * (1-activation)
         A_weighted = safe_sparse_multiply(A_idx.T, weights)
-        return A_weighted@A_idx/normalization + self.l2*np.eye(self.dim)
+        hess = A_weighted@A_idx/normalization + self.l2*np.eye(self.dim)
+        if return_idx:
+            return (hess, idx)
+        return hess
     
     def mat_vec_product(self, x):
         if self.store_mat_vec_prod and self.is_equal(x, self.x_last):
