@@ -129,7 +129,7 @@ class StochasticOptimizer(Optimizer):
     The class has the same methods as Optimizer and, in addition, uses
     multiple seeds to run the experiments.
     """
-    def __init__(self, loss, n_seeds=1, seeds=None, *args, **kwargs):
+    def __init__(self, loss, n_seeds=1, seeds=None, label=None, *args, **kwargs):
         super(StochasticOptimizer, self).__init__(loss=loss, *args, **kwargs)
         self.seeds = seeds
         if not seeds:
