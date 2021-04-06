@@ -28,6 +28,8 @@ class AdgdAccel(Optimizer):
         self.x_old = copy.deepcopy(self.x)
         self.grad_old = copy.deepcopy(self.grad)
         self.x = self.x_nest - self.lr*self.grad
+        if self.use_prox:
+            self.x = self.loss.regularizer.prox(self.x, self.lr)
         self.x_nest = self.x + self.momentum*(self.x - self.x_old)
         
     def estimate_new_stepsize(self):

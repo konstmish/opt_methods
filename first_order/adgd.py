@@ -23,6 +23,8 @@ class Adgd(Optimizer):
         self.x_old = copy.deepcopy(self.x)
         self.grad_old = copy.deepcopy(self.grad)
         self.x -= self.lr * self.grad
+        if self.use_prox:
+            self.x = self.loss.regularizer.prox(self.x, self.lr)
         
     def estimate_new_stepsize(self):
         if self.grad_old is not None:
