@@ -1,5 +1,5 @@
 # Optimization methods
-This is a package containing implementations of different loss functions and optimization algorithms. The main goal of this package is to have a unified and easy-to-use comparison of iteration complexities of the algorithms, so the time performance might often be sub-optimal.
+This is a package containing implementations of different loss functions and optimization algorithms. The main goal of this package is to have a unified and easy-to-use comparison of iteration complexities of the algorithms, so the time comparison of methods is approximate. If you are interested in finding the best implementation of a solver for your problem, you may find the [BenchOpt package](https://benchopt.github.io/index.html) more useful.
 ## Structure
 ### First order
 Gradient-based algorithms:  
