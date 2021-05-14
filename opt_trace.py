@@ -219,10 +219,14 @@ class StochasticTrace:
             
         plot = plt.plot(its, y_ave, label=label, markevery=markevery, *args, **kwargs)
         if len(self.loss_vals_all.keys()) > 1:
-            plt.fill_between(it_ave, lower, upper, alpha=alpha, color=plot[0].get_color())
+            plt.fill_between(its, lower, upper, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
         
-    def save(self, file_name, path='./results/'):
+    def save(self, file_name=None, path='./results/'):
+        if file_name is None:
+            file_name = self.label
+        if path[-1] != '/':
+            path += '/'
         self.loss = None
         Path(path).mkdir(parents=True, exist_ok=True)
         f = open(path + file_name, 'wb')
