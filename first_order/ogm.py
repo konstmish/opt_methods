@@ -25,7 +25,7 @@ class Ogm(Optimizer):
             self.mu = mu
             if mu <= 0:
                 raise ValueError("""Mu must be larger than 0 for strongly_convex=True,
-                                 invalid value: {}""".format(mu))
+                                    invalid value: {}""".format(mu))
         self.strongly_convex = strongly_convex
         self.start_with_small_momentum = start_with_small_momentum
             

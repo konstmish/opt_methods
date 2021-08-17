@@ -21,20 +21,24 @@ class Optimizer:
         label (string, optional): label to be passed to the Trace attribute (default: None)
     """
     def __init__(self, loss, trace_len=200, use_prox=True, tolerance=0, line_search=None,
-                 save_first_iterations=10, label=None):
+                 save_first_iterations=10, label=None, seeds=None):
         self.loss = loss
         self.trace_len = trace_len
         self.use_prox = use_prox and (self.loss.regularizer is not None)
         self.tolerance = tolerance
         self.line_search = line_search
-        if line_search is not None:
-            line_search.reset(self)
         self.save_first_iterations = save_first_iterations
         self.label = label
         
         self.initialized = False
         self.x_old_tol = None
         self.trace = Trace(loss=loss, label=label)
+        if seeds is None:
+            self.rng = np.random.default_rng(42)
+            self.seeds = [42]
+        else:
+            self.seeds = seeds
+        self.finished_seeds = []
     
     def run(self, x0, t_max=np.inf, it_max=np.inf, ls_it_max=None):
         if t_max is np.inf and it_max is np.inf:
@@ -42,17 +46,24 @@ class Optimizer:
             print(f'The number of iterations is set to {it_max}.')
         self.t_max = t_max
         self.it_max = it_max
-        if ls_it_max is None:
-            self.ls_it_max = it_max
-        if not self.initialized:
-            self.init_run(x0)
-            self.initialized = True
         
-        while not self.check_convergence():
-            if self.tolerance > 0:
-                self.x_old_tol = copy.deepcopy(self.x)
-            self.step()
-            self.save_checkpoint()
+        for seed in self.seeds:
+            if seed in self.finished_seeds:
+                continue
+            self.rng = np.random.default_rng(seed)
+            if ls_it_max is None:
+                self.ls_it_max = it_max
+            if not self.initialized:
+                self.init_run(x0)
+                self.initialized = True
+
+            while not self.check_convergence():
+                if self.tolerance > 0:
+                    self.x_old_tol = copy.deepcopy(self.x)
+                self.step()
+                self.save_checkpoint()
+            self.finished_seeds.append(seed)
+            self.initialized = False
 
         return self.trace
         
@@ -85,6 +96,8 @@ class Optimizer:
         self.time_progress = 0
         self.iterations_progress = 0
         self.max_progress = 0
+        if self.line_search is not None:
+            self.line_search.reset(self)
         
     def should_update_trace(self):
         if self.it <= self.save_first_iterations:
@@ -135,6 +148,7 @@ class StochasticOptimizer(Optimizer):
         if not seeds:
             np.random.seed(SEED)
             self.seeds = np.random.choice(MAX_SEED, size=n_seeds, replace=False)
+        self.label = label
         self.finished_seeds = []
         self.trace = StochasticTrace(loss=loss, label=label)
         self.seed = None
@@ -160,3 +174,6 @@ class StochasticOptimizer(Optimizer):
         n_seeds = len(self.seeds) + n_extra_seeds
         self.seeds = np.random.choice(MAX_SEED, size=n_seeds, replace=False)
         self.loss_is_computed = False
+        if self.trace.its_converted_to_epochs:
+            # TODO: create a bool variable for each seed
+            pass

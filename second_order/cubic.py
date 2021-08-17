@@ -1,3 +1,4 @@
+import numpy as np
 import numpy.linalg as la
 
 from optimizer import Optimizer
@@ -10,7 +11,7 @@ def ls_cubic_solver(x, g, H, M, it_max=100, epsilon=1e-8, loss=None):
     For explanation of Cauchy point, see "Gradient Descent 
         Efficiently Finds the Cubic-Regularized Non-Convex Newton Step"
         https://arxiv.org/pdf/1612.00547.pdf
-    Other potentials implementations can be found in paper
+    Other potential implementations can be found in paper
         "Adaptive cubic regularisation methods"
         https://people.maths.ox.ac.uk/cartis/papers/ARCpI.pdf
     """
@@ -68,16 +69,17 @@ class Cubic(Optimizer):
     Newton method with cubic regularization for global convergence.
     
     Arguments:
-        cub_reg (float, optional): an estimate of the Hessian's Lipschitz constant
+        reg_coef (float, optional): an estimate of the Hessian's Lipschitz constant
     """
-    def __init__(self, M=0, cub_reg=None, solver_it=100, solver_eps=1e-8, cubic_solver=None, *args, **kwargs):
+    def __init__(self, reg_coef=None, solver_it=100, solver_eps=1e-8, cubic_solver=None, *args, **kwargs):
         super(Cubic, self).__init__(*args, **kwargs)
-        self.cub_reg = cub_reg
+        self.reg_coef = reg_coef
         self.cubic_solver = cubic_solver
-        self.M = M
         self.solver_it = 0
         self.solver_it = solver_it
         self.solver_eps = solver_eps
+        if reg_coef is None:
+            self.reg_coef = self.loss.hessian_lipschitz
         if cubic_solver is None:
             self.cubic_solver = ls_cubic_solver
         
@@ -85,7 +87,7 @@ class Cubic(Optimizer):
         self.grad = self.loss.gradient(self.x)
         self.hess = self.loss.hessian(self.x)
         inv_hess_grad_prod = la.lstsq(self.hess, self.grad, rcond=None)[0]
-        self.x, solver_it = self.cubic_solver(self.x, self.grad, self.hess, self.M, self.solver_it, self.solver_eps)
+        self.x, solver_it = self.cubic_solver(self.x, self.grad, self.hess, self.reg_coef/2, self.solver_it, self.solver_eps)
         self.solver_it += solver_it
         
     def init_run(self, *args, **kwargs):

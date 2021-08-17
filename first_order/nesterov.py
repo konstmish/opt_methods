@@ -28,7 +28,6 @@ class Nesterov(Optimizer):
                                  invalid value: {}""".format(mu))
         self.strongly_convex = strongly_convex
         self.start_with_small_momentum = start_with_small_momentum
-            
         
     def step(self):
         if not self.strongly_convex or self.start_with_small_momentum:

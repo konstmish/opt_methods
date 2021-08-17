@@ -59,13 +59,14 @@ class Wolfe(LineSearch):
         armijo_condition = self.armijo_condition(gradient, x, x_new)
         curvature_condition = self.curvature_condition(gradient, x, x_new)
         it_extra = 0
-        while not armijo_condition and it_extra < self.it_max:
+        it_max = min(self.it_max, self.optimizer.ls_it_max - self.it)
+        while not armijo_condition and it_extra < it_max:
             self.lr *= self.backtracking
             x_new = x + self.lr * direction
             armijo_condition = self.armijo_condition(gradient, x, x_new)
             it_extra += 1
         if it_extra == 0:
-            while not curvature_condition and it_extra < self.it_max:
+            while not curvature_condition and it_extra < it_max:
                 self.lr /= self.backtracking
                 x_new = x + self.lr * direction
                 curvature_condition = self.curvature_condition(gradient, x, x_new)

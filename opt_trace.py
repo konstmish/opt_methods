@@ -31,7 +31,7 @@ class Trace:
         if len(self.loss_vals) == 0:
             self.loss_vals = np.asarray([self.loss.value(x) for x in self.xs])
         else:
-            print('Loss values have already been computed. Set .loss_vals = [] to recompute')
+            warnings.warn('Loss values have already been computed. Set .loss_vals = [] to recompute.')
     
     def convert_its_to_epochs(self, batch_size=1):
         if self.its_converted_to_epochs:
@@ -41,7 +41,7 @@ class Trace:
         self.its = np.asarray(self.its) / its_per_epoch
         self.its_converted_to_epochs = True
           
-    def plot_losses(self, its=None, f_opt=None, label=None, markevery=None, ls_its=False, time=False, *args, **kwargs):
+    def plot_losses(self, its=None, f_opt=None, label=None, markevery=None, ls_its=True, time=False, *args, **kwargs):
         if its is None:
             if ls_its and self.ls_its is not None:
                 its = self.ls_its
@@ -49,6 +49,8 @@ class Trace:
                 its = self.ts
             else:
                 its = self.its
+        if len(self.loss_vals) == 0:
+            self.compute_loss_of_iterates()
         if f_opt is None:
             f_opt = self.loss.f_opt
         if label is None:
@@ -56,12 +58,10 @@ class Trace:
         if markevery is None:
             markevery = max(1, len(self.loss_vals)//20)
         
-        if len(self.loss_vals) == 0:
-            self.compute_loss_of_iterates()
         plt.plot(its, self.loss_vals - f_opt, label=label, markevery=markevery, *args, **kwargs)
         plt.ylabel(r'$f(x)-f^*$')
         
-    def plot_distances(self, its=None, x_opt=None, label=None, markevery=None, ls_its=False, time=False, *args, **kwargs):
+    def plot_distances(self, its=None, x_opt=None, label=None, markevery=None, ls_its=True, time=False, *args, **kwargs):
         if its is None:
             if ls_its and self.ls_its is not None:
                 its = self.ls_its
@@ -144,8 +144,8 @@ class StochasticTrace:
             if loss_vals is None:
                 self.loss_vals_all[seed] = np.asarray([self.loss.value(x) for x in self.xs_all[seed]])
             else:
-                print("""Loss values for seed {} have already been computed. 
-                      Set .loss_vals_all[{}] = [] to recompute""".format(seed, seed))
+                warnings.warn("""Loss values for seed {} have already been computed. 
+                    Set .loss_vals_all[{}] = [] to recompute.""".format(seed, seed))
         self.loss_is_computed = True
     
     @property
@@ -157,10 +157,10 @@ class StochasticTrace:
     def convert_its_to_epochs(self, batch_size=1):
         if self.its_converted_to_epochs:
             return
-        its_per_epoch = self.loss.n / batch_size
+        self.its_per_epoch = self.loss.n / batch_size
         for seed, its in self.its_all.items():
-            self.its_all[seed] = np.asarray(its) / its_per_epoch
-        self.its = np.asarray(self.its) / its_per_epoch
+            self.its_all[seed] = np.asarray(its) / self.its_per_epoch
+        self.its = np.asarray(self.its) / self.its_per_epoch
         self.its_converted_to_epochs = True
         
     def plot_losses(self, its=None, f_opt=None, log_std=True, label=None, markevery=None, alpha=0.25, *args, **kwargs):
@@ -218,7 +218,7 @@ class StochasticTrace:
             markevery = max(1, len(y_ave)//20)
             
         plot = plt.plot(its, y_ave, label=label, markevery=markevery, *args, **kwargs)
-        if len(self.loss_vals_all.keys()) > 1:
+        if len(self.xs_all.keys()) > 1:
             plt.fill_between(its, lower, upper, alpha=alpha, color=plot[0].get_color())
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
         

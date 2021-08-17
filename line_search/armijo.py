@@ -50,7 +50,8 @@ class Armijo(LineSearch):
         
         armijo_condition_met = self.condition(gradient, x, x_new)
         it_extra = 0
-        while not armijo_condition_met and it_extra < self.it_max:
+        it_max = min(self.it_max, self.optimizer.ls_it_max - self.it)
+        while not armijo_condition_met and it_extra < it_max:
             self.lr *= self.backtracking
             x_new = x + self.lr * direction
             armijo_condition_met = self.condition(gradient, x, x_new)

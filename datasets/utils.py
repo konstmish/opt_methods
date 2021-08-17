@@ -5,6 +5,8 @@ from sklearn.datasets import load_svmlight_file
 
 
 def get_dataset(dataset, data_path='../datasets/'):
+    if len(data_path) > 0 and data_path[-1] != '/':
+        data_path += '/'
     if dataset in ['covtype', 'news20', 'real-sim', 'webspam', 'YearPredictionMSD']:
         return load_svmlight_file(data_path + dataset + '.bz2')
     elif dataset in ['a1a', 'a5a', 'a9a', 'mushrooms', 'gisette', 'w8a']:
@@ -25,4 +27,6 @@ def get_dataset(dataset, data_path='../datasets/'):
         main_class = np.argmax(freq)
         b = (b[:, main_class] == 1) * 1.
         b = b.toarray().squeeze()
+    else:
+        raise ValueError(f'The dataset {dataset} not found.')
     return A, b

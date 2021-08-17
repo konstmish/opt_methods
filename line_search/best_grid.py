@@ -68,7 +68,8 @@ class BestGrid(LineSearch):
                 proposed_value = proposed_next
             it_extra += 1
         found_best = not need_to_decrease_lr and not self.increase_many_times
-        while not found_best and it_extra < self.it_max:
+        it_max = min(self.it_max, self.optimizer.ls_it_max - self.it)
+        while not found_best and it_extra < it_max:
             if need_to_decrease_lr:
                 lr_next = self.lr * self.backtracking
             else:

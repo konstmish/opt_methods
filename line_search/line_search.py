@@ -5,7 +5,7 @@ class LineSearch():
     direction for optimization. The goodness of the new point can 
     be measured in many ways: decrease of functional values, 
     smaller gradient norm, Lipschitzness of an operator, etc.
-    Args:
+    Arguments:
         lr0 (float, optional): the initial estimate (default: 1.0)
         count_first_it (bool, optional): to count the first iteration
             as if it takes effort. This should be False for methods that
