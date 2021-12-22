@@ -40,6 +40,8 @@ class LogSumExp(Oracle):
             self.b = self.rng.normal(-1, 1, size=n)
         if A is None:
             self.A = self.rng.uniform(-1, 1, size=(n, dim))
+            # for the first gradient computation, we have to set 
+            # the values of self.store_mat_vec_prod and self.store_softmax
             self.store_mat_vec_prod = False
             self.store_softmax = False
             self.A -= self.gradient(np.zeros(dim))
@@ -59,11 +61,11 @@ class LogSumExp(Oracle):
             regularization = self.l2/2 * self.norm(x)**2
         if self.least_squares_term:
             regularization += 1/2 * np.linalg.norm(Ax)**2
-        return self.max_smoothing*scipy.special.logsumexp((Ax-self.b/self.max_smoothing)) + regularization
+        return self.max_smoothing*scipy.special.logsumexp(((Ax-self.b)/self.max_smoothing)) + regularization
     
     def gradient(self, x):
         Ax = self.mat_vec_product(x)
-        softmax = self.softmax(x=x, Ax=Ax)
+        softmax = self.softmax(Ax=Ax)
         if self.least_squares_term:
             grad = (softmax + Ax) @ self.A
         else:
@@ -75,9 +77,10 @@ class LogSumExp(Oracle):
     
     def hessian(self, x):
         Ax = self.mat_vec_product(x)
-        hess1 = self.A.T * (self.softmax/self.max_smoothing + 1) @ self.A
-        g = softmax @ self.A
-        hess2 = -np.outer(g, g) / self.max_smoothing
+        softmax = self.softmax(x=x, Ax=Ax)
+        hess1 = self.A.T * (softmax/self.max_smoothing) @ self.A
+        grad = softmax @ self.A
+        hess2 = -np.outer(grad, grad) / self.max_smoothing
         return hess1 + hess2 + self.l2 * np.eye(self.dim)
     
     def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None):
@@ -96,10 +99,10 @@ class LogSumExp(Oracle):
     def softmax(self, x=None, Ax=None):
         if x is None and Ax is None:
             raise ValueError("Either x or Ax must be provided to compute softmax.")
-        if Ax is None:
-            Ax = self.mat_vec_product(x)
         if self.store_softmax and self.is_equal(x, self.x_last_soft):
             return self._softmax
+        if Ax is None:
+            Ax = self.mat_vec_product(x)
         
         softmax = scipy.special.softmax((Ax-self.b) / self.max_smoothing)
         if self.store_softmax and x is not None:
@@ -124,10 +127,12 @@ class LogSumExp(Oracle):
         return self._smoothness
     
     @property
-    def hess_lip(self):
-        if self._hess_lip is None:
-            self._hess_lip = scipy.sparse.linalg.svds(self.A, k=1, return_singular_vectors=False)[0]**2
-        return self._hess_lip
+    def hessian_lipschitz(self):
+        if self._hessian_lipschitz is None:
+            row_norms = np.linalg.norm(self.A, axis=1)
+            max_row_norm = np.max(row_norms)
+            self._hessian_lipschitz = 2 * max_row_norm / self.max_smoothing * self.smoothness
+        return self._hessian_lipschitz
     
     @staticmethod
     def norm(x):
