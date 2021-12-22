@@ -18,4 +18,7 @@ class Newton(Optimizer):
         self.grad = self.loss.gradient(self.x)
         self.hess = self.loss.hessian(self.x)
         inv_hess_grad_prod = la.lstsq(self.hess, self.grad, rcond=None)[0]
-        self.x -= self.lr * inv_hess_grad_prod
+        if self.line_search is None:
+            self.x -= self.lr * inv_hess_grad_prod
+        else:
+            self.x = self.line_search(x=self.x, direction=-inv_hess_grad_prod)
