@@ -5,7 +5,7 @@ from .line_search import LineSearch
 class NestArmijo(LineSearch):
     """
     This line search implements procedure (4.9) from the following paper by Nesterov:
-    http://www.optimization-online.org/DB_FILE/2007/09/1784.pdf
+        http://www.optimization-online.org/DB_FILE/2007/09/1784.pdf
     Arguments:
         mu (float, optional): strong convexity constant (default: 0.0)
         start_with_prev_lr (boolean, optional): initialize lr with the previous value (default: True)
