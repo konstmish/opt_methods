@@ -36,6 +36,11 @@ class Oracle():
         self._ave_smoothness = None
         self._importance_probs = None
         self._individ_smoothness = None
+        self._hessian_lipschitz = None
+        
+    def set_seed(self, seed):
+        self.seed = seed
+        self.rng = np.random.default_rng(seed)
     
     def value(self, x):
         value = self._value(x)
