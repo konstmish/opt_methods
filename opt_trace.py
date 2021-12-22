@@ -44,6 +44,7 @@ class Trace:
     def plot_losses(self, its=None, f_opt=None, label=None, markevery=None, ls_its=True, time=False, *args, **kwargs):
         if its is None:
             if ls_its and self.ls_its is not None:
+                print('Line search iteration counter is used for plots.')
                 its = self.ls_its
             elif time:
                 its = self.ts
