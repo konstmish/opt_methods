@@ -40,17 +40,22 @@ class LogisticRegression(Oracle):
         b = np.asarray(b)
         b_unique = np.unique(b)
         # check that only two unique values exist in b
+        if len(b_unique) == 1:
+            warnings.warn('The labels have only one unique value.')
+            self.b = b
         if len(b_unique) > 2:
             raise ValueError('The number of classes must be no more than 2 for binary classification.')
-        if (b_unique == [1, 2]).all():
-            # Transform labels {1, 2} to {0, 1}
-            self.b = b - 1
-        elif (b_unique == [-1, 1]).all():
-            # Transform labels {-1, 1} to {0, 1}
-            self.b = (b+1) / 2
-        else:
-            # replace class labels with 0's and 1's
-            self.b = 1. * (b == b[0])
+        self.b = b
+        if len(b_unique) == 2 and (b_unique != [0, 1]).any():
+            if (b_unique == [1, 2]).all():
+                # Transform labels {1, 2} to {0, 1}
+                self.b = b - 1
+            elif (b_unique == [-1, 1]).all():
+                # Transform labels {-1, 1} to {0, 1}
+                self.b = (b+1) / 2
+            else:
+                # replace class labels with 0's and 1's
+                self.b = 1. * (b == b[0])
         self.store_mat_vec_prod = store_mat_vec_prod
         
         self.n, self.dim = A.shape
@@ -221,6 +226,16 @@ class LogisticRegression(Oracle):
             return self._individ_smoothness
         self._individ_smoothness = row_norms(self.A)
         return self._individ_smoothness
+    
+    @property
+    def hessian_lipschitz(self):
+        if self._hessian_lipschitz is not None:
+            return self._hessian_lipschitz
+        # Estimate the norm of tensor T = sum_i f_i(x)''' * [a_i, a_i, a_i] as ||T|| <= max||a_i|| * max|f_i'''| * ||A||^2
+        a_max = row_norms(self.A, squared=False).max()
+        A_norm = (self.smoothness - self.l2) * 4
+        self._hessian_lipschitz = A_norm * a_max / (6*np.sqrt(3))
+        return self._hessian_lipschitz
     
     @staticmethod
     def norm(x):
