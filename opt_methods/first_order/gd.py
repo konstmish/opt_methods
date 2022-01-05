@@ -1,4 +1,4 @@
-from optimizer import Optimizer
+from opt_methods.optimizer import Optimizer
 
 
 class Gd(Optimizer):

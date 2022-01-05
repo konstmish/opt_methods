@@ -1,3 +1,4 @@
+import numpy as np
 import copy
 
 from .line_search import LineSearch

@@ -1,7 +1,7 @@
 import copy
 
-from line_search import NestArmijo
-from optimizer import Optimizer
+from opt_methods.line_search import NestArmijo
+from opt_methods.optimizer import Optimizer
 
 
 class NestLine(Optimizer):

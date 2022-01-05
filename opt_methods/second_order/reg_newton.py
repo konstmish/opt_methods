@@ -4,8 +4,8 @@ import warnings
 
 import numpy.linalg as la
 
-from line_search import RegNewtonLS
-from optimizer import Optimizer
+from opt_methods.line_search import RegNewtonLS
+from opt_methods.optimizer import Optimizer
 
 
 def empirical_hess_lip(grad, grad_old, hess, x, x_old, loss):
@@ -13,7 +13,7 @@ def empirical_hess_lip(grad, grad_old, hess, x, x_old, loss):
     r2 = loss.norm(x - x_old)**2
     if r2 > 0:
         return 2 * loss.norm(grad_error) / r2
-    return 1e-16
+    return np.finfo(float).eps
 
 
 class RegNewton(Optimizer):

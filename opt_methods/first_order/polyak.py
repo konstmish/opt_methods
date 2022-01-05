@@ -1,6 +1,6 @@
 import numpy as np
 
-from optimizer import Optimizer
+from opt_methods.optimizer import Optimizer
 
 
 class Polyak(Optimizer):

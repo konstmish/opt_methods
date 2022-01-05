@@ -1,6 +1,6 @@
 import numpy as np
 
-from optimizer import StochasticOptimizer
+from opt_methods.optimizer import StochasticOptimizer
 
 
 class Svrg(StochasticOptimizer):

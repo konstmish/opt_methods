@@ -1,8 +1,8 @@
 import copy
 import numpy as np
 
-from line_search import BestGrid
-from optimizer import Optimizer
+from opt_methods.line_search import BestGrid
+from opt_methods.optimizer import Optimizer
 
 
 class Shorr(Optimizer):

@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.linalg as la
 
-from optimizer import Optimizer
+from opt_methods.optimizer import Optimizer
 
 
 def ls_cubic_solver(x, g, H, M, it_max=100, epsilon=1e-8, loss=None):
