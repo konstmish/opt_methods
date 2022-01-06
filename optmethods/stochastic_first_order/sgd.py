@@ -2,7 +2,7 @@ import numpy as np
 
 from scipy.sparse import csr_matrix
 
-from opt_methods.optimizer import StochasticOptimizer
+from optmethods.optimizer import StochasticOptimizer
 
 
 class Sgd(StochasticOptimizer):

@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-from opt_methods.optimizer import StochasticOptimizer
+from optmethods.optimizer import StochasticOptimizer
 
 
 class Shuffling(StochasticOptimizer):

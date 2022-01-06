@@ -1,7 +1,7 @@
 import copy
 
-from opt_methods.line_search import NestArmijo
-from opt_methods.optimizer import Optimizer
+from optmethods.line_search import NestArmijo
+from optmethods.optimizer import Optimizer
 
 
 class NestLine(Optimizer):
@@ -13,7 +13,7 @@ class NestLine(Optimizer):
     its efficiency on ill-conditioned problems.
     
     Arguments:
-        line_search (opt_methods.LineSearch, optional): a callable line search, here it should be None or
+        line_search (optmethods.LineSearch, optional): a callable line search, here it should be None or
             an instance of NestArmijo class.  If None, line search is intialized automatically (default: None)
         lr (float, optional): an estimate of the inverse smoothness constant
         strongly_convex (bool, optional): use the variant for strongly convex functions,

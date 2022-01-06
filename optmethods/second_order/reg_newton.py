@@ -4,8 +4,8 @@ import warnings
 
 import numpy.linalg as la
 
-from opt_methods.line_search import RegNewtonLS
-from opt_methods.optimizer import Optimizer
+from optmethods.line_search import RegNewtonLS
+from optmethods.optimizer import Optimizer
 
 
 def empirical_hess_lip(grad, grad_old, hess, x, x_old, loss):
@@ -24,7 +24,7 @@ class RegNewton(Optimizer):
         https://arxiv.org/abs/2112.02089
     
     Arguments:
-        loss (opt_methods.loss.Oracle): loss oracle
+        loss (optmethods.loss.Oracle): loss oracle
         reg_coef (float, optional): regularization coefficient, not used when reg_rule is 'grad' with grad_norm_power=0.5 (default: None)
         hess_lip (float, optional): estimate for the Hessian Lipschitz constant. 
             If not provided, it is estimated or a small value is used (default: None)
@@ -34,7 +34,7 @@ class RegNewton(Optimizer):
             or a line-search procedure
         use_line_search (bool, optional): use line search to estimate the Lipschitz constan of the Hessian.
             If adaptive is True, line search will be non-monotonic and regularization may decrease (default: False)
-        line_search (opt_methods.LineSearch, optional): a callable line search, here it should be None or
+        line_search (optmethods.LineSearch, optional): a callable line search, here it should be None or
             an instance of RegNewtonLS class.  If None, line search is intialized automatically (default: None)
         backtracking (float, optional): backtracking constant for the line search if line_search is None and
             use_line_search is True. (default: 0.5)

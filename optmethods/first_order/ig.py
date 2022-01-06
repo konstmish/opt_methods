@@ -1,6 +1,6 @@
 import numpy as np
 
-from opt_methods.optimizer import Optimizer
+from optmethods.optimizer import Optimizer
 
 
 class Ig(Optimizer):

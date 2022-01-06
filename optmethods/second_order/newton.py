@@ -1,6 +1,6 @@
 import numpy.linalg as la
 
-from opt_methods.optimizer import Optimizer
+from optmethods.optimizer import Optimizer
 
 
 class Newton(Optimizer):

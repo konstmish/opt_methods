@@ -4,8 +4,8 @@ import numpy.linalg as la
 import scipy
 import time
 
-from opt_methods.opt_trace import Trace, StochasticTrace
-from opt_methods.utils import set_seed
+from optmethods.opt_trace import Trace, StochasticTrace
+from optmethods.utils import set_seed
 
 
 SEED = 42
