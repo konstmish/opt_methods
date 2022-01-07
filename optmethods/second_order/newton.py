@@ -1,4 +1,4 @@
-import numpy.linalg as la
+import numpy as np
 
 from optmethods.optimizer import Optimizer
 
@@ -17,7 +17,6 @@ class Newton(Optimizer):
     def step(self):
         self.grad = self.loss.gradient(self.x)
         self.hess = self.loss.hessian(self.x)
-        inv_hess_grad_prod = la.lstsq(self.hess, self.grad, rcond=None)[0]
         inv_hess_grad_prod = np.linalg.solve(self.hess, self.grad)
         if self.line_search is None:
             self.x -= self.lr * inv_hess_grad_prod
