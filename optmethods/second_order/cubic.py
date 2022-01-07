@@ -16,7 +16,7 @@ def ls_cubic_solver(x, g, H, M, it_max=100, epsilon=1e-8, loss=None):
         https://people.maths.ox.ac.uk/cartis/papers/ARCpI.pdf
     """
     solver_it = 1
-    newton_step = -la.lstsq(H, g, rcond=None)[0]
+    newton_step = -np.linalg.solve(H, g)
     if M == 0:
         return x + newton_step, solver_it
     def cauchy_point(g, H, M):

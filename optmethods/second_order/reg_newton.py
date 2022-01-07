@@ -2,8 +2,6 @@ import copy
 import numpy as np
 import warnings
 
-import numpy.linalg as la
-
 from optmethods.line_search import RegNewtonLS
 from optmethods.optimizer import Optimizer
 
@@ -79,7 +77,6 @@ class RegNewton(Optimizer):
             identity_coef = (self.reg_coef * grad_norm)**self.grad_norm_power
             self.x_old = copy.deepcopy(self.x)
             self.grad_old = copy.deepcopy(self.grad)
-            # delta_x = -la.lstsq(self.hess + identity_coef*np.eye(self.loss.dim), self.grad, rcond=None)[0]
             delta_x = -np.linalg.solve(self.hess + identity_coef*np.eye(self.loss.dim), self.grad)
             self.x += delta_x
         
