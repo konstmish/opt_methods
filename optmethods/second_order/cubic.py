@@ -50,7 +50,7 @@ def ls_cubic_solver(x, g, H, M, it_max=100, epsilon=1e-8, loss=None):
     for _ in range(it_max):
         r_try = (r_min + r_max) / 2
         lam = r_try * M
-        s_lam = -la.lstsq(H + lam*id_matrix, g, rcond=None)[0]
+        s_lam = -np.linalg.solve(H + lam*id_matrix, g)
         solver_it += 1
         crit = conv_criterion(s_lam, r_try)
         if np.abs(crit) < epsilon:
@@ -86,7 +86,6 @@ class Cubic(Optimizer):
     def step(self):
         self.grad = self.loss.gradient(self.x)
         self.hess = self.loss.hessian(self.x)
-        inv_hess_grad_prod = la.lstsq(self.hess, self.grad, rcond=None)[0]
         self.x, solver_it = self.cubic_solver(self.x, self.grad, self.hess, self.reg_coef/2, self.solver_it, self.solver_eps)
         self.solver_it += solver_it
         
