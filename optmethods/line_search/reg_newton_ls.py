@@ -21,15 +21,16 @@ class RegNewtonLS(LineSearch):
         self.decrease_reg = decrease_reg
         self.backtracking = backtracking
         self.attempts = 0
+        self.reg_coef = 1 / self
         
-    def condition(self, x_new, x, grad, reg_coef):
+    def condition(self, x_new, x, grad, identity_coef):
         if self.f_prev is None:
             self.f_prev = self.loss.value(x)
         self.f_new = self.loss.value(x_new)
         r = self.loss.norm(x_new - x)
-        condition_f = self.f_new <= self.f_prev - 2/3 * reg_coef * r**2
+        condition_f = self.f_new <= self.f_prev - 2/3 * identity_coef * r**2
         grad_new = self.loss.gradient(x_new)
-        condition_grad = self.loss.norm(grad_new) <= 2 * reg_coef * r
+        condition_grad = self.loss.norm(grad_new) <= 2 * identity_coef * r
         # condition_grad = self.loss.norm(grad_new) <= 2 * self.loss.norm(grad)
         self.attempts = self.attempts + 1 if not condition_f or not condition_grad else 0
         return condition_f and condition_grad
@@ -56,7 +57,7 @@ class RegNewtonLS(LineSearch):
                 break
         self.f_prev = self.f_new
         self.it += it_extra
-        self.lr = 1 / reg_coef
+        self.lr = 1 / identity_coef
         return x_new, reg_coef
 
     def reset(self, *args, **kwargs):
