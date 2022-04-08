@@ -42,9 +42,11 @@ class Trace:
         self.its_converted_to_epochs = True
           
     def plot_losses(self, its=None, f_opt=None, label=None, markevery=None, ls_its=True, time=False, *args, **kwargs):
+        if label is None:
+            label = self.label
         if its is None:
             if ls_its and self.ls_its is not None:
-                print('Line search iteration counter is used for plots.')
+                print(f'Line search iteration counter is used for plotting {label}')
                 its = self.ls_its
             elif time:
                 its = self.ts
@@ -54,8 +56,6 @@ class Trace:
             self.compute_loss_of_iterates()
         if f_opt is None:
             f_opt = self.loss.f_opt
-        if label is None:
-            label = self.label
         if markevery is None:
             markevery = max(1, len(self.loss_vals)//20)
         
