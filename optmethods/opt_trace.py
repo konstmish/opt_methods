@@ -41,11 +41,11 @@ class Trace:
         self.its = np.asarray(self.its) / its_per_epoch
         self.its_converted_to_epochs = True
           
-    def plot_losses(self, its=None, f_opt=None, label=None, markevery=None, ls_its=True, time=False, *args, **kwargs):
+    def plot_losses(self, its=None, f_opt=None, label=None, markevery=None, use_ls_its=True, time=False, *args, **kwargs):
         if label is None:
             label = self.label
         if its is None:
-            if ls_its and self.ls_its is not None:
+            if use_ls_its and self.ls_its is not None:
                 print(f'Line search iteration counter is used for plotting {label}')
                 its = self.ls_its
             elif time:
@@ -62,9 +62,9 @@ class Trace:
         plt.plot(its, self.loss_vals - f_opt, label=label, markevery=markevery, *args, **kwargs)
         plt.ylabel(r'$f(x)-f^*$')
         
-    def plot_distances(self, its=None, x_opt=None, label=None, markevery=None, ls_its=True, time=False, *args, **kwargs):
+    def plot_distances(self, its=None, x_opt=None, label=None, markevery=None, use_ls_its=True, time=False, *args, **kwargs):
         if its is None:
-            if ls_its and self.ls_its is not None:
+            if use_ls_its and self.ls_its is not None:
                 its = self.ls_its
             elif time:
                 its = self.ts
@@ -81,7 +81,6 @@ class Trace:
             markevery = max(1, len(self.xs)//20)
             
         dists = [self.loss.norm(x-x_opt)**2 for x in self.xs]
-        its = self.ls_its if ls_its and self.ls_its else self.its
         plt.plot(its, dists, label=label, markevery=markevery, *args, **kwargs)
         plt.ylabel(r'$\Vert x-x^*\Vert^2$')
         

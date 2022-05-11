@@ -7,20 +7,17 @@ class LineSearch():
     smaller gradient norm, Lipschitzness of an operator, etc.
     Arguments:
         lr0 (float, optional): the initial estimate (default: 1.0)
-        count_first_it (bool, optional): to count the first iteration
-            as if it takes effort. This should be False for methods that
-            reuse information, such as objective value, from the previous 
+        count_first_it (bool, optional): to count the first iteration as requiring effort.
+            This should be False for methods that reuse information, such as objective value, from the previous
             line search iteration. In contrast, most stochastic line searches
-            should count the initial iteration too as it can't be reused (default: False)
-        count_last_it (bool, optional): to count the last iteration as if
-            it takes effort. Not true for line searches that can use the
-            produced information, such as matrix-vector product, to compute
-            the next gradient or other important quantities. However, even then, 
-            it is convenient to set to False to account for gradient
-            computation (default: True)
+            should count the initial iteration too as information can't be reused (default: False)
+        count_last_it (bool, optional): to count the last iteration as requiring effort.
+            Not true for line searches that can use the produced information, such as matrix-vector
+            product, to compute the next gradient or other important quantities. However, even then, 
+            it is convenient to set to False to account for gradient computation (default: True)
         it_max (int, optional): maximal number of innert iterations per one call. 
-                                    Prevents from running for too long and from
-                                    running into machine precision issues (default: 50)
+            Prevents the line search from running for too long and from
+            running into machine precision issues (default: 50)
         tolerance (float, optional): the allowed amount of condition violation (default: 0)
     """
     
