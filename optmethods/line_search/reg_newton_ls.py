@@ -14,12 +14,10 @@ class RegNewtonLS(LineSearch):
     Arguments:
         decrease_reg (boolean, optional): multiply the previous regularization parameter by 1/backtracking (default: True)
         backtracking (float, optional): constant by which the current regularization is divided (default: 0.5)
-        count_first_it (boolean, optional): to count the first iteration as requiring effort.
-            Set to True by default since any iteration requires an extra matrix inversion. (default: True)
     """
     
-    def __init__(self, decrease_reg=True, backtracking=0.5, H0=None, count_first_it=True, *args, **kwargs):
-        super(RegNewtonLS, self).__init__(count_first_it=count_first_it, *args, **kwargs)
+    def __init__(self, decrease_reg=True, backtracking=0.5, H0=None, *args, **kwargs):
+        super(RegNewtonLS, self).__init__(*args, **kwargs)
         self.decrease_reg = decrease_reg
         self.backtracking = backtracking
         self.H0 = H0
