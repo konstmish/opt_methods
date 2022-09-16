@@ -25,8 +25,8 @@ class NestLine(Optimizer):
     def __init__(self, line_search=None, lr=None, mu=0, start_with_small_momentum=True, *args, **kwargs):
         if mu < 0:
             raise ValueError("Invalid mu: {}".format(mu))
-        if self.line_search is None:
-            self.line_search = NestArmijo(mu=mu, start_with_small_momentum=start_with_small_momentum)
+        if line_search is None:
+            line_search = NestArmijo(mu=mu, start_with_small_momentum=start_with_small_momentum)
         super(NestLine, self).__init__(line_search=line_search, *args, **kwargs)
         self.lr = lr
         self.mu = mu
