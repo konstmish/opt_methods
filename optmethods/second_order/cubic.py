@@ -67,16 +67,19 @@ def ls_cubic_solver(x, g, H, M, it_max=100, epsilon=1e-8, loss=None):
 class Cubic(Optimizer):
     """
     Newton method with cubic regularization for global convergence.
+    The method was studied by Nesterov and Polyak in the following paper:
+        "Cubic regularization of Newton method and its global performance"
+        https://link.springer.com/article/10.1007/s10107-006-0706-8
     
     Arguments:
         reg_coef (float, optional): an estimate of the Hessian's Lipschitz constant
     """
-    def __init__(self, reg_coef=None, solver_it=100, solver_eps=1e-8, cubic_solver=None, *args, **kwargs):
+    def __init__(self, reg_coef=None, solver_it_max=100, solver_eps=1e-8, cubic_solver=None, *args, **kwargs):
         super(Cubic, self).__init__(*args, **kwargs)
         self.reg_coef = reg_coef
         self.cubic_solver = cubic_solver
         self.solver_it = 0
-        self.solver_it = solver_it
+        self.solver_it_max = solver_it_max
         self.solver_eps = solver_eps
         if reg_coef is None:
             self.reg_coef = self.loss.hessian_lipschitz
@@ -86,7 +89,7 @@ class Cubic(Optimizer):
     def step(self):
         self.grad = self.loss.gradient(self.x)
         self.hess = self.loss.hessian(self.x)
-        self.x, solver_it = self.cubic_solver(self.x, self.grad, self.hess, self.reg_coef/2, self.solver_it, self.solver_eps)
+        self.x, solver_it = self.cubic_solver(self.x, self.grad, self.hess, self.reg_coef/2, self.solver_it_max, self.solver_eps)
         self.solver_it += solver_it
         
     def init_run(self, *args, **kwargs):
