@@ -97,7 +97,7 @@ class Optimizer:
         self.iterations_progress = 0
         self.max_progress = 0
         if self.line_search is not None:
-            self.line_search.reset(self)
+            self.line_search.reset()
         
     def should_update_trace(self):
         if self.it <= self.save_first_iterations:
