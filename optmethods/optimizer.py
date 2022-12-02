@@ -43,7 +43,7 @@ class Optimizer:
     def run(self, x0, t_max=np.inf, it_max=np.inf, ls_it_max=None):
         if t_max is np.inf and it_max is np.inf:
             it_max = 100
-            print(f'The number of iterations is set to {it_max}.')
+            print(f'{self.label}: The number of iterations is set to {it_max}.')
         self.t_max = t_max
         self.it_max = it_max
         
