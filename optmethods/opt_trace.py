@@ -173,13 +173,13 @@ class StochasticTrace:
         if log_std:
             y_log = [np.log(loss_vals-f_opt) for loss_vals in self.loss_vals_all.values()]
             y_log_ave = np.mean(y_log, axis=0)
-            y_log_std = np.std(y_log, axis=0)
+            y_log_std = np.std(y_log, axis=0, ddof=1)
             lower, upper = np.exp(y_log_ave - y_log_std), np.exp(y_log_ave + y_log_std)
             y_ave = np.exp(y_log_ave)
         else:
             y = [loss_vals-f_opt for loss_vals in self.loss_vals_all.values()]
             y_ave = np.mean(y, axis=0)
-            y_std = np.std(y, axis=0)
+            y_std = np.std(y, axis=0, ddof=1)
             lower, upper = y_ave - y_std, y_ave + y_std
         if label is None:
             label = self.label
@@ -204,13 +204,13 @@ class StochasticTrace:
         if log_std:
             y_log = [np.log(dist) for dist in dists]
             y_log_ave = np.mean(y_log, axis=0)
-            y_log_std = np.std(y_log, axis=0)
+            y_log_std = np.std(y_log, axis=0, ddof=1)
             lower, upper = np.exp(y_log_ave - y_log_std), np.exp(y_log_ave + y_log_std)
             y_ave = np.exp(y_log_ave)
         else:
             y = dists
             y_ave = np.mean(y, axis=0)
-            y_std = np.std(y, axis=0)
+            y_std = np.std(y, axis=0, ddof=1)
             lower, upper = y_ave - y_std, y_ave + y_std
         if label is None:
             label = self.label
