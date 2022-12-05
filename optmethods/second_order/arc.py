@@ -13,7 +13,7 @@ class MockLineSearch():
         self.it = 0
 
 
-def ls_cubic_solver(x, g, H, M, it_max=100, epsilon=1e-8, loss=None):
+def arc_cubic_solver(x, g, H, M, it_max=100, epsilon=1e-8, loss=None):
     """
     Solve min_z <g, z-x> + 1/2<z-x, H(z-x)> + M/3 ||z-x||^3
     
