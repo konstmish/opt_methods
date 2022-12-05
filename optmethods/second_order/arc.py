@@ -4,6 +4,15 @@ import numpy.linalg as la
 from optmethods.optimizer import Optimizer
 
 
+class MockLineSearch():
+    #TODO: replace with a proper line search
+    def __init__(self):
+        self.lr = None
+        
+    def reset(self, optimizer):
+        self.it = 0
+
+
 def ls_cubic_solver(x, g, H, M, it_max=100, epsilon=1e-8, loss=None):
     """
     Solve min_z <g, z-x> + 1/2<z-x, H(z-x)> + M/3 ||z-x||^3
@@ -70,31 +79,37 @@ class Arc(Optimizer):
     Adaptive Regularisation algorithm using Cubics (ARC) is a second-order optimizer based on Cubic Newton.
     This implementation is based on the paper by Cartis et al.,
         "Adaptive cubic regularisation methods for unconstrained optimization. 
-        Part I: motivation, convergence and numerical results"
+            Part I: motivation, convergence and numerical results"
     We use the same rules for initializing eta1, eta2, sigma and updating sigma as given in the paper.
     
     Arguments:
         eta1 (float, optional): parameter to identify very successful iterations (default: 0.1)
         eta2 (float, optional): parameter to identify unsuccessful iterations (default: 0.9)
-        eps (float, optional): minimal value of the cubic-penalty coefficient (default: 1e-16)
+        sigma_eps (float, optional): minimal value of the cubic-penalty coefficient (default: 1e-16)
         sigma (float, optional): an estimate of the Hessian's Lipschitz constant
+        solver_it_max (int, optional): subsolver hard limit on iteration number (default: 100)
+        solver_eps (float, optional): subsolver precision parameter (default: 1e-4)
+        cubic_solver (callable, optional): subsolver (default: None)
     """
-    def __init__(self, eta1=0.1, eta2=0.9, eps=1e-16, sigma=1, solver_it=100, solver_eps=1e-8, cubic_solver=None, *args, **kwargs):
+    def __init__(self, eta1=0.1, eta2=0.9, sigma_eps=1e-16, sigma=None, solver_it_max=100, 
+                 solver_eps=1e-4, cubic_solver=None, *args, **kwargs):
         super(Arc, self).__init__(*args, **kwargs)
         self.eta1 = eta1
         self.eta2 = eta2
-        self.eps = eps
+        self.sigma_eps = sigma_eps
         self.sigma = sigma
         self.cubic_solver = cubic_solver
         self.solver_it = 0
-        self.solver_it = solver_it
+        self.solver_it_max = solver_it_max
         self.solver_eps = solver_eps
         if sigma is None:
-            self.sigma = self.loss.hessian_lipschitz
+            self.sigma = self.loss.hessian_lipschitz / 2
+            if self.sigma is None:
+                self.sigma = 1.
         if cubic_solver is None:
-            self.cubic_solver = ls_cubic_solver
+            self.cubic_solver = arc_cubic_solver
         self.f_prev = None
-        self.line_search = 
+        self.line_search = MockLineSearch()
         
     def step(self):
         if self.f_prev is None:
@@ -102,7 +117,8 @@ class Arc(Optimizer):
         self.grad = self.loss.gradient(self.x)
         grad_norm = self.loss.norm(self.grad)
         self.hess = self.loss.hessian(self.x)
-        x_cubic, solver_it = self.cubic_solver(self.x, self.grad, self.hess, self.sigma, self.solver_it, self.solver_eps)
+        solver_eps = min(self.solver_eps, np.sqrt(grad_norm)) * grad_norm
+        x_cubic, solver_it, lam = self.cubic_solver(self.x, self.grad, self.hess, self.sigma, self.solver_it_max, solver_eps)
         s = x_cubic - self.x
         model_value = self.f_prev + self.loss.inner_prod(s, self.grad) + 0.5 * self.hess @ s @ s + self.sigma/3 * self.loss.norm(s)**3
         f_new = self.loss.value(x_cubic)
@@ -113,13 +129,14 @@ class Arc(Optimizer):
         else:
             self.sigma *= 2
         if rho > self.eta2:
-            self.sigma = max(self.eps, min(self.sigma, grad_norm))
-        self.solver_it += solver_it
+            self.sigma = max(self.sigma_eps, min(self.sigma / 2, grad_norm))
+        self.line_search.it += solver_it
+        self.line_search.lr = 1 / lam if lam > 0 else np.inf
         
     def init_run(self, *args, **kwargs):
         super(Arc, self).init_run(*args, **kwargs)
-        self.trace.solver_its = [0]
+        self.trace.sigmas = [self.sigma]
         
     def update_trace(self):
         super(Arc, self).update_trace()
-        self.trace.solver_its.append(self.solver_it)
+        self.trace.sigmas.append(self.sigma)
