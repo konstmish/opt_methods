@@ -86,7 +86,5 @@ class RegNewton(Optimizer):
         
     def update_trace(self, *args, **kwargs):
         super(RegNewton, self).update_trace(*args, **kwargs)
-        if self.use_line_search:
-            self.trace.lrs.append(self.line_search.lr)
-        else:
+        if not self.use_line_search:
             self.trace.lrs.append(1 / self.identity_coef)
