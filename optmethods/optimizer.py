@@ -4,6 +4,8 @@ import numpy.linalg as la
 import scipy
 import time
 
+from tqdm.notebook import tqdm
+
 from optmethods.opt_trace import Trace, StochasticTrace
 from optmethods.utils import set_seed
 
@@ -18,10 +20,28 @@ class Optimizer:
     save the trace and plot the results.
     
     Arguments:
+        loss (required): an instance of class Oracle, which will be used to produce gradients,
+              loss values, or whatever else is required by the optimizer
+        trace_len (int, optional): the number of checkpoints that will be stored in the
+                                  trace. Larger value may slowdown the runtime (default: 200)
+        use_prox (bool, optional): whether the optimizer should treat the regularizer
+                                   using prox (default: True)
+        tolerance (float, optional): stationarity level at which the method should interrupt.
+                                     Stationarity is computed using the difference between
+                                     two consecutive iterates(default: 0)
+        line_search (optional): an instance of class LineSearch, which is used to tune stepsize,
+                                or other parameters of the optimizer (default: None)
+        save_first_iterations (int, optional): how many of the very first iterations should be
+                                               saved as checkpoints in the trace. Useful when
+                                               optimizer converges fast at the beginning 
+                                               (default: 5)
         label (string, optional): label to be passed to the Trace attribute (default: None)
+        seeds (list, optional): random seeds to be used to create random number generator (RNG).
+                                If None, a single random seed 42 will be used (default: None)
+        tqdm (bool, optional): whether to use tqdm to report progress of the run (default: True)
     """
     def __init__(self, loss, trace_len=200, use_prox=True, tolerance=0, line_search=None,
-                 save_first_iterations=5, label=None, seeds=None):
+                 save_first_iterations=5, label=None, seeds=None, tqdm=True):
         self.loss = loss
         self.trace_len = trace_len
         self.use_prox = use_prox and (self.loss.regularizer is not None)
@@ -29,12 +49,12 @@ class Optimizer:
         self.line_search = line_search
         self.save_first_iterations = save_first_iterations
         self.label = label
+        self.tqdm = tqdm
         
         self.initialized = False
         self.x_old_tol = None
         self.trace = Trace(loss=loss, label=label)
         if seeds is None:
-            self.rng = np.random.default_rng(42)
             self.seeds = [42]
         else:
             self.seeds = seeds
@@ -50,18 +70,32 @@ class Optimizer:
         for seed in self.seeds:
             if seed in self.finished_seeds:
                 continue
+            if len(self.seeds) > 1:
+                print(f'{self.label}: Running seed {seed}')
             self.rng = np.random.default_rng(seed)
             if ls_it_max is None:
                 self.ls_it_max = it_max
             if not self.initialized:
                 self.init_run(x0)
                 self.initialized = True
-
-            while not self.check_convergence():
-                if self.tolerance > 0:
-                    self.x_old_tol = copy.deepcopy(self.x)
-                self.step()
-                self.save_checkpoint()
+                
+            it_criterion = self.ls_it_max is not np.inf
+            tqdm_total = self.ls_it_max if it_criterion else self.t_max
+            tqdm_val = 0
+            with tqdm(total=tqdm_total) as pbar:
+                while not self.check_convergence():
+                    if self.tolerance > 0:
+                        self.x_old_tol = copy.deepcopy(self.x)
+                    self.step()
+                    self.save_checkpoint()
+                    if it_criterion and self.line_search is not None:
+                        tqdm_val_new = self.ls_it
+                    elif it_criterion:
+                        tqdm_val_new = self.it
+                    else:
+                        tqdm_val_new = self.t
+                    pbar.update(tqdm_val_new - tqdm_val)
+                    tqdm_val = tqdm_val_new
             self.finished_seeds.append(seed)
             self.initialized = False
 
