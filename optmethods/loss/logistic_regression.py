@@ -48,13 +48,13 @@ class LogisticRegression(Oracle):
         self.b = b
         if len(b_unique) == 2 and (b_unique != [0, 1]).any():
             if (b_unique == [1, 2]).all():
-                # Transform labels {1, 2} to {0, 1}
+                print('The passed labels have values in the set {1, 2}. Changing them to {0, 1}')
                 self.b = b - 1
             elif (b_unique == [-1, 1]).all():
-                # Transform labels {-1, 1} to {0, 1}
+                print('The passed labels have values in the set {-1, 1}. Changing them to {0, 1}')
                 self.b = (b+1) / 2
             else:
-                # replace class labels with 0's and 1's
+                print(f'Changing the labels from {b[0]} to 1s and the rest to 0s')
                 self.b = 1. * (b == b[0])
         self.store_mat_vec_prod = store_mat_vec_prod
         
@@ -98,9 +98,11 @@ class LogisticRegression(Oracle):
     def stochastic_gradient(self, x, idx=None, batch_size=1, replace=False, normalization=None, 
                             importance_sampling=False, p=None, rng=None, return_idx=False):
         """
-        normalization is needed for Shuffling optimizer
+        normalization (int, optional): this parameter is needed for Shuffling optimizer
             to remove the bias of the last (incomplete) minibatch
         """
+        if batch_size == self.n:
+            return (self.gradient(x), np.arange(n)) if return_idx else self.gradient(x)
         if idx is None:
             if rng is None:
                 rng = self.rng
@@ -143,6 +145,8 @@ class LogisticRegression(Oracle):
     
     def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None, 
                            rng=None, return_idx=False):
+        if batch_size == self.n:
+            return (self.hessian(x), np.arange(n)) if return_idx else self.hessian(x)
         if idx is None:
             if rng is None:
                 rng = self.rng
@@ -238,8 +242,8 @@ class LogisticRegression(Oracle):
         return self._hessian_lipschitz
     
     @staticmethod
-    def norm(x):
-        return safe_sparse_norm(x)
+    def norm(x, ord=None):
+        return safe_sparse_norm(x, ord=ord)
     
     @staticmethod
     def inner_prod(x, y):
