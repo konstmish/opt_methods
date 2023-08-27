@@ -31,8 +31,6 @@ class Sgd(StochasticOptimizer):
         self.lr_decay_coef = lr_decay_coef
         self.lr_decay_power = lr_decay_power
         self.it_start_decay = it_start_decay
-        if it_start_decay is None and np.isfinite(self.it_max):
-            self.it_start_decay = self.it_max // 40 if np.isfinite(self.it_max) else 0
         self.batch_size = batch_size
         self.avoid_cache_miss = avoid_cache_miss
         self.importance_sampling = importance_sampling
@@ -59,3 +57,5 @@ class Sgd(StochasticOptimizer):
         super(Sgd, self).init_run(*args, **kwargs)
         if self.lr0 is None:
             self.lr0 = 1 / self.loss.batch_smoothness(batch_size)
+        if self.it_start_decay is None and np.isfinite(self.it_max):
+            self.it_start_decay = self.it_max // 40 if np.isfinite(self.it_max) else 0
