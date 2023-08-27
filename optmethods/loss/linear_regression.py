@@ -8,29 +8,12 @@ from .loss_oracle import Oracle
 from .utils import safe_sparse_add, safe_sparse_multiply, safe_sparse_norm
 
 
-def logsig(x):
+class LinearRegression(Oracle):
     """
-    Compute the log-sigmoid function component-wise.
-    See http://fa.bianp.net/blog/2019/evaluate_logistic/ for more details.
-    """
-    out = np.zeros_like(x)
-    idx0 = x < -33
-    out[idx0] = x[idx0]
-    idx1 = (x >= -33) & (x < -18)
-    out[idx1] = x[idx1] - np.exp(x[idx1])
-    idx2 = (x >= -18) & (x < 37)
-    out[idx2] = -np.log1p(np.exp(-x[idx2]))
-    idx3 = x >= 37
-    out[idx3] = -np.exp(-x[idx3])
-    return out
-
-
-class LogisticRegression(Oracle):
-    """
-    Logistic regression oracle that returns loss values, gradients and Hessians.
+    Linear regression oracle that returns loss values, gradients and Hessians.
     """
     def __init__(self, A, b, store_mat_vec_prod=True, *args, **kwargs):
-        super(LogisticRegression, self).__init__(*args, **kwargs)
+        super(LinearRegression, self).__init__(*args, **kwargs)
         self.A = A
         b = np.asarray(b)
         if (np.unique(b) == [1, 2]).all():
@@ -44,8 +27,8 @@ class LogisticRegression(Oracle):
             self.b = b
         self.n, self.dim = A.shape
         self.store_mat_vec_prod = store_mat_vec_prod
-        self.x_last = 0#np.zeros(self.dim)
-        self.mat_vec_prod = 0#np.zeros(self.n)
+        self.x_last = 0 #np.zeros(self.dim)
+        self.mat_vec_prod = 0 #np.zeros(self.n)
     
     def value(self, x):
         z = self.mat_vec_product(x)
@@ -103,3 +86,11 @@ class LogisticRegression(Oracle):
     def average_smoothness(self):
         ave_squared_sum = row_norms(self.A, squared=True).mean()
         return 0.25*ave_squared_sum + self.l2
+    
+    @staticmethod
+    def norm(x, ord=None):
+        return safe_sparse_norm(x, ord=ord)
+    
+    @staticmethod
+    def inner_prod(x, y):
+        return safe_sparse_inner_prod(x, y)
