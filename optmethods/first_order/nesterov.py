@@ -14,16 +14,22 @@ class Nesterov(Optimizer):
         lr (float, optional): an estimate of the inverse smoothness constant
         strongly_convex (bool, optional): use the variant for strongly convex functions,
             which requires mu to be provided (default: False)
-        mu (float, optional): strong-convexity constant or a lower bound on it (default: 0)
+        max_momentum (float, optional): the target value of momentum. If start_with_small_momentum
+            is True, the value of momentum in the method will be increased from 0 to the value
+            provided in this parameter. Otherwise, it is used in all iterations
+        mu (float, optional): strong-convexity constant or a lower bound on it. Ignored if
+            momentum is provided (default: 0)
         start_with_small_momentum (bool, optional): momentum gradually increases. Only used if
             strongly_convex is set to True (default: True)
     """
-    def __init__(self, lr=None, strongly_convex=False, mu=0, start_with_small_momentum=True, *args, **kwargs):
+    def __init__(self, lr=None, strongly_convex=False, max_momentum=None, mu=0, 
+                 start_with_small_momentum=True, *args, **kwargs):
         super(Nesterov, self).__init__(*args, **kwargs)
         self.lr = lr
+        self.max_momentum = max_momentum
         if strongly_convex:
             self.mu = mu
-            if mu <= 0:
+            if mu <= 0 and max_momentum is None:
                 raise ValueError("""Mu must be larger than 0 for strongly_convex=True,
                                  invalid value: {}""".format(mu))
         self.strongly_convex = strongly_convex
@@ -50,8 +56,8 @@ class Nesterov(Optimizer):
             self.lr = 1 / self.loss.smoothness
         self.x_nest = copy.deepcopy(self.x)
         self.alpha = 1.
-        if self.strongly_convex:
+        if self.strongly_convex and self.max_momentum is None:
             kappa = (1/self.lr)/self.mu
             self.max_momentum = (np.sqrt(kappa)-1) / (np.sqrt(kappa)+1)
-        else:
+        elif self.max_momentum is None:
             self.max_momentum = 1. - 1e-8

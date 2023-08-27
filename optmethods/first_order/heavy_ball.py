@@ -9,8 +9,8 @@ class HeavyBall(Optimizer):
     Arguments:
         lr (float, optional): an estimate of the inverse smoothness constant
         momentum (float, optional): momentum value. For quadratics, 
-            it should be close to 1-sqrt(l_min/l_max), where l_min and
-            l_max are the smallest/largest eigenvalues of the quadratic matrix
+            it should be close to 1-sqrt(λ_min/λ_max), where λ_min and
+            λ_max are the smallest/largest eigenvalues of the quadratic matrix
     """
     def __init__(self, lr=None, strongly_convex=False, momentum=None, *args, **kwargs):
         super(HeavyBall, self).__init__(*args, **kwargs)
