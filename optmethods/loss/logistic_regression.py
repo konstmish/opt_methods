@@ -101,7 +101,7 @@ class LogisticRegression(Oracle):
         normalization (int, optional): this parameter is needed for Shuffling optimizer
             to remove the bias of the last (incomplete) minibatch
         """
-        if batch_size == self.n:
+        if batch_size is None or batch_size == self.n:
             return (self.gradient(x), np.arange(n)) if return_idx else self.gradient(x)
         if idx is None:
             if rng is None:
