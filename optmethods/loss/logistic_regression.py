@@ -102,7 +102,7 @@ class LogisticRegression(Oracle):
             to remove the bias of the last (incomplete) minibatch
         """
         if batch_size is None or batch_size == self.n:
-            return (self.gradient(x), np.arange(n)) if return_idx else self.gradient(x)
+            return (self.gradient(x), np.arange(self.n)) if return_idx else self.gradient(x)
         if idx is None:
             if rng is None:
                 rng = self.rng
@@ -146,7 +146,7 @@ class LogisticRegression(Oracle):
     def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None, 
                            rng=None, return_idx=False):
         if batch_size == self.n:
-            return (self.hessian(x), np.arange(n)) if return_idx else self.hessian(x)
+            return (self.hessian(x), np.arange(self.n)) if return_idx else self.hessian(x)
         if idx is None:
             if rng is None:
                 rng = self.rng
