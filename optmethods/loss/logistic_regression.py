@@ -32,6 +32,8 @@ class LogisticRegression(Oracle):
     Logistic regression oracle that returns loss values, gradients, Hessians,
     their stochastic analogues as well as smoothness constants. Supports both
     sparse and dense iterates but is far from optimal for dense vectors.
+
+    The loss is defined as f(x) = 1/n sum_{i=1}^n log(cᵢ s(<aᵢ,x>)) + l₂/2 ||x||².
     """
     
     def __init__(self, A, b, store_mat_vec_prod=True, *args, **kwargs):
@@ -52,7 +54,7 @@ class LogisticRegression(Oracle):
                 self.b = b - 1
             elif (b_unique == [-1, 1]).all():
                 print('The passed labels have values in the set {-1, 1}. Changing them to {0, 1}')
-                self.b = (b+1) / 2
+                self.b = (b + 1) / 2
             else:
                 print(f'Changing the labels from {b[0]} to 1s and the rest to 0s')
                 self.b = 1. * (b == b[0])
@@ -66,8 +68,8 @@ class LogisticRegression(Oracle):
         Ax = self.mat_vec_product(x)
         regularization = 0
         if self.l2 != 0:
-            regularization = self.l2 / 2 * safe_sparse_norm(x)**2
-        return np.mean(safe_sparse_multiply(1-self.b, Ax)-logsig(Ax)) + regularization
+            regularization = self.l2 / 2 * safe_sparse_norm(x) ** 2
+        return np.mean(safe_sparse_multiply(1-self.b, Ax) - logsig(Ax)) + regularization
     
     def partial_value(self, x, idx, include_reg=True, normalization=None, return_idx=False):
         batch_size = 1 if np.isscalar(idx) else len(idx)
@@ -78,8 +80,8 @@ class LogisticRegression(Oracle):
             Ax = Ax.toarray().ravel()
         regularization = 0
         if include_reg:
-            regularization = self.l2 / 2 * safe_sparse_norm(x)**2
-        value = np.sum(safe_sparse_multiply(1-self.b[idx], Ax)-logsig(Ax))/normalization + regularization
+            regularization = self.l2 / 2 * safe_sparse_norm(x) ** 2
+        value = np.sum(safe_sparse_multiply(1-self.b[idx], Ax) - logsig(Ax)) / normalization + regularization
         if return_idx:
             return (value, idx)
         return value
@@ -90,7 +92,7 @@ class LogisticRegression(Oracle):
         if self.l2 == 0:
             grad = self.A.T@(activation-self.b)/self.n
         else:
-            grad = safe_sparse_add(self.A.T@(activation-self.b)/self.n, self.l2*x)
+            grad = safe_sparse_add(self.A.T @ (activation-self.b) / self.n, self.l2*x)
         if scipy.sparse.issparse(x):
             grad = scipy.sparse.csr_matrix(grad).T
         return grad
@@ -129,9 +131,9 @@ class LogisticRegression(Oracle):
         else:
             error = (activation-self.b[idx]) / normalization
         if not np.isscalar(error):
-            grad = self.l2*x + (error@A_idx).T
+            grad = self.l2 * x + (error @ A_idx).T
         else:
-            grad = self.l2*x + error*A_idx.T
+            grad = self.l2 * x + error * A_idx.T
         if return_idx:
             return (grad, idx)
         return grad
@@ -141,7 +143,7 @@ class LogisticRegression(Oracle):
         activation = scipy.special.expit(Ax)
         weights = activation * (1-activation)
         A_weighted = safe_sparse_multiply(self.A.T, weights)
-        return A_weighted@self.A/self.n + self.l2*np.eye(self.dim)
+        return A_weighted @ self.A / self.n + self.l2 * np.eye(self.dim)
     
     def stochastic_hessian(self, x, idx=None, batch_size=1, replace=False, normalization=None, 
                            rng=None, return_idx=False):
@@ -162,7 +164,7 @@ class LogisticRegression(Oracle):
         activation = scipy.special.expit(Ax)
         weights = activation * (1-activation)
         A_weighted = safe_sparse_multiply(A_idx.T, weights)
-        hess = A_weighted@A_idx/normalization + self.l2*np.eye(self.dim)
+        hess = A_weighted @ A_idx / normalization + self.l2 * np.eye(self.dim)
         if return_idx:
             return (hess, idx)
         return hess
@@ -191,14 +193,17 @@ class LogisticRegression(Oracle):
         if self._smoothness is not None:
             return self._smoothness
         if self.dim > 20000 and self.n > 20000:
-            warnings.warn("The matrix is too large to estimate the smoothness constant, so Frobenius estimate is used instead.")
+            warnings.warn("The matrix is too large to compute the smoothness constant, so an estimate is used instead.")
             if scipy.sparse.issparse(self.A):
-                self._smoothness = 0.25*scipy.sparse.linalg.norm(self.A, ord='fro')**2/self.n + self.l2
+                estimate1 = scipy.sparse.linalg.norm(self.A, ord='fro') ** 2
+                estimate2 = scipy.sparse.linalg.norm(self.A, ord=1) * scipy.sparse.linalg.norm(self.A, ord=float('inf'))
             else:
-                self._smoothness = 0.25*np.linalg.norm(self.A, ord='fro')**2/self.n + self.l2
+                estimate1 = np.linalg.norm(self.A, ord='fro') ** 2
+                estimate2 = np.linalg.norm(self.A, ord=1) * np.linalg.norm(self.A, ord=float('inf'))
+            self._smoothness = 0.25 * min(estimate1, estimate2) / self.n + self.l2
         else:
             sing_val_max = scipy.sparse.linalg.svds(self.A, k=1, return_singular_vectors=False)[0]
-            self._smoothness = 0.25*sing_val_max**2/self.n + self.l2
+            self._smoothness = 0.25 * sing_val_max ** 2 / self.n + self.l2
         return self._smoothness
     
     @property
@@ -206,7 +211,7 @@ class LogisticRegression(Oracle):
         if self._max_smoothness is not None:
             return self._max_smoothness
         max_squared_sum = row_norms(self.A, squared=True).max()
-        self._max_smoothness = 0.25*max_squared_sum + self.l2
+        self._max_smoothness = 0.25 * max_squared_sum + self.l2
         return self._max_smoothness
     
     @property
@@ -221,7 +226,7 @@ class LogisticRegression(Oracle):
         "Smoothness constant of stochastic gradients sampled in minibatches"
         L = self.smoothness
         L_max = self.max_smoothness
-        L_batch = self.n / (self.n-1) * (1-1/batch_size) * L + (self.n/batch_size-1) / (self.n-1) * L_max
+        L_batch = self.n / (self.n - 1) * (1 - 1/batch_size) * L + (self.n / batch_size - 1) / (self.n - 1) * L_max
         return L_batch
     
     @property
