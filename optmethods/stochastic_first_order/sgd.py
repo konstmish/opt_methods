@@ -2,10 +2,10 @@ import numpy as np
 
 from scipy.sparse import csr_matrix
 
-from optmethods.optimizer import StochasticOptimizer
+from optmethods.optimizer import Optimizer
 
 
-class Sgd(StochasticOptimizer):
+class Sgd(Optimizer):
     """
     Stochastic gradient descent with decreasing or constant learning rate.
     

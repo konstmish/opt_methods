@@ -1,10 +1,10 @@
 import copy
 import numpy as np
 
-from optmethods.optimizer import StochasticOptimizer
+from optmethods.optimizer import Optimizer
 
 
-class Rootsgd(StochasticOptimizer):
+class Rootsgd(Optimizer):
     """
     Recursive One-Over-T SGD with decreasing or constant learning rate.
     Based on the paper

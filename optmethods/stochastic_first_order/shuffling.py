@@ -1,10 +1,10 @@
 import math
 import numpy as np
 
-from optmethods.optimizer import StochasticOptimizer
+from optmethods.optimizer import Optimizer
 
 
-class Shuffling(StochasticOptimizer):
+class Shuffling(Optimizer):
     """
     Shuffling-based stochastic gradient descent with decreasing or constant learning rate.
     For a formal description and convergence guarantees, see

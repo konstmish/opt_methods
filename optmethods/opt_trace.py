@@ -7,6 +7,26 @@ import pickle
 import warnings
 
 
+def plot_with_std(xs, ys, log_std, std_interval_alpha, label='', markevery=None, *args, **kwargs):
+    # TODO: add support for ys of different lengths and corresponding to different xs since
+    # we might have different line search iterations. Perhaps linear interpolation?
+    x = np.mean([np.asarray(x_i) for x_i in xs.values()], axis=0)
+    if log_std:
+        y_log = [np.log(y) for y in ys]
+        y_log_ave = np.mean(y_log, axis=0)
+        y_log_std = np.std(y_log, axis=0, ddof=1)
+        lower, upper = np.exp(y_log_ave - y_log_std), np.exp(y_log_ave + y_log_std)
+        y_ave = np.exp(y_log_ave)
+    else:
+        y_ave = np.mean(ys, axis=0)
+        y_std = np.std(ys, axis=0, ddof=1)
+        lower, upper = y_ave - y_std, y_ave + y_std
+    if markevery is None:
+        markevery = max(1, len(y_ave) // 20)
+    plot = plt.plot(x, y_ave, label=label, markevery=markevery, *args, **kwargs)
+    plt.fill_between(x, lower, upper, alpha=std_interval_alpha, color=plot[0].get_color())
+
+
 class Trace:
     """
     Stores the logs of running an optimization method
@@ -20,124 +40,30 @@ class Trace:
         self.loss = loss
         self.label = label
         
-        self.xs = []
-        self.ts = []
-        self.its = []
-        self.loss_vals = []
-        self.its_converted_to_epochs = False
-        self.ls_its = None
-    
-    def compute_loss_of_iterates(self):
-        if len(self.loss_vals) == 0:
-            self.loss_vals = np.asarray([self.loss.value(x) for x in self.xs])
-        else:
-            warnings.warn('Loss values have already been computed. Set .loss_vals = [] to recompute.')
-    
-    def convert_its_to_epochs(self, batch_size=1):
-        if self.its_converted_to_epochs:
-            warnings.warn('The iteration count has already been converted to epochs.')
-            return
-        its_per_epoch = self.loss.n / batch_size
-        self.its = np.asarray(self.its) / its_per_epoch
-        self.its_converted_to_epochs = True
-          
-    def plot_losses(self, its=None, f_opt=None, label=None, markevery=None, use_ls_its=True, time=False, *args, **kwargs):
-        if label is None:
-            label = self.label
-        if its is None:
-            if use_ls_its and self.ls_its is not None:
-                print(f'Line search iteration counter is used for plotting {label}')
-                its = self.ls_its
-            elif time:
-                its = self.ts
-            else:
-                its = self.its
-        if len(self.loss_vals) == 0:
-            self.compute_loss_of_iterates()
-        if f_opt is None:
-            f_opt = self.loss.f_opt
-        if markevery is None:
-            markevery = max(1, len(self.loss_vals)//20)
-        
-        plt.plot(its, self.loss_vals - f_opt, label=label, markevery=markevery, *args, **kwargs)
-        plt.ylabel(r'$f(x)-f^*$')
-        
-    def plot_distances(self, its=None, x_opt=None, label=None, markevery=None, use_ls_its=True, time=False, *args, **kwargs):
-        if its is None:
-            if use_ls_its and self.ls_its is not None:
-                its = self.ls_its
-            elif time:
-                its = self.ts
-            else:
-                its = self.its
-        if x_opt is None:
-            if self.loss.x_opt is None:
-                x_opt = self.xs[-1]
-            else:
-                x_opt = self.loss.x_opt
-        if label is None:
-            label = self.label
-        if markevery is None:
-            markevery = max(1, len(self.xs)//20)
-            
-        dists = [self.loss.norm(x-x_opt)**2 for x in self.xs]
-        plt.plot(its, dists, label=label, markevery=markevery, *args, **kwargs)
-        plt.ylabel(r'$\Vert x-x^*\Vert^2$')
-        
-    @property
-    def best_loss_value(self):
-        if len(self.loss_vals) == 0:
-            self.compute_loss_of_iterates()
-        return np.min(self.loss_vals)
-        
-    def save(self, file_name, path='./results/'):
-        # To make the dumped file smaller, remove the loss
-        loss_ref_copy = self.loss
-        self.loss = None
-        Path(path).mkdir(parents=True, exist_ok=True)
-        with open(path + file_name, 'wb') as f:
-            pickle.dump(self, f)
-        self.loss = loss_ref_copy
-        
-    @classmethod
-    def from_pickle(cls, path, loss=None):
-        if not os.path.isfile(path):
-            return None
-        with open(path, 'rb') as f:
-            trace = pickle.load(f)
-            trace.loss = loss
-        if loss is not None:
-            loss.f_opt = min(self.best_loss_value, loss.f_opt)
-        return trace
-        
-        
-class StochasticTrace:
-    """
-    Class that stores the logs of running a stochastic
-    optimization method and plots the trajectory.
-    """
-    def __init__(self, loss, label=None):
-        self.loss = loss
-        self.label = label
-        
         self.xs_all = {}
         self.ts_all = {}
         self.its_all = {}
         self.loss_vals_all = {}
         self.its_converted_to_epochs = False
         self.loss_is_computed = False
+        self.ls_its_all = None
         
     def init_seed(self):
         self.xs = []
         self.ts = []
         self.its = []
         self.loss_vals = None
-        
+        self.ls_its = None
+
     def append_seed_results(self, seed):
         self.xs_all[seed] = self.xs.copy()
         self.ts_all[seed] = self.ts.copy()
         self.its_all[seed] = self.its.copy()
-        self.loss_vals_all[seed] = self.loss_vals.copy() if self.loss_vals else None
+        if self.loss_vals is None:
+            self.loss_vals_all[seed] = None
+            self.loss_is_computed = False
+        else:
+            self.loss_vals_all[seed] = self.loss_vals.copy()
     
     def compute_loss_of_iterates(self):
         for seed, loss_vals in self.loss_vals_all.items():
@@ -148,96 +74,103 @@ class StochasticTrace:
                     Set .loss_vals_all[{}] = [] to recompute.""".format(seed, seed))
         self.loss_is_computed = True
     
+    def convert_its_to_epochs(self, batch_size=1):
+        for seed in self.seeds:
+            if self.its_converted_to_epochs[seed]:
+                warnings.warn('The iteration count has already been converted to epochs.')
+                continue
+            its_per_epoch = self.loss.n / batch_size
+            self.its = np.asarray(self.its) / its_per_epoch
+            self.its_all[seed] = np.asarray(self.its_all[seed]) / its_per_epoch
+            self.its_converted_to_epochs[seed] = True
+          
+    def plot_losses(self, its=None, f_opt=None, log_std=True, std_interval_alpha=0.25, label=None,
+                    y_label=None, markevery=None, use_ls_its=True, time=False, *args, **kwargs):
+        if not self.loss_is_computed:
+            self.compute_loss_of_iterates()
+        if its is None:
+            if use_ls_its and self.ls_its is not None:
+                print(f'Line search iteration counter is used for plotting {label}')
+                its_all = self.ls_its_all
+            elif time:
+                its_all = self.ts_all
+            else:
+                its_all = self.its_all
+        if label is None:
+            label = self.label
+        if y_label is None:
+            y_label = r'$f(x)-f^*$'
+        if f_opt is None:
+            f_opt = self.loss.f_opt
+        n_seeds = len(self.loss_vals_all)
+        if n_seeds == 1:
+            loss_gaps = list(self.loss_vals_all.values())[0] - f_opt
+            its = list(its_all.values())[0]
+            if markevery is None:
+                markevery = max(1, len(loss_gaps) // 20)
+            plt.plot(its, loss_gaps, label=label, markevery=markevery, *args, **kwargs)
+        else:
+            loss_gaps = [np.asarray(loss_vals) - f_opt for loss_vals in self.loss_vals_all.values()]
+            plot_with_std(its_all, loss_gaps, log_std, std_interval_alpha, label, markevery, *args, **kwargs)
+        
+        plt.ylabel(y_label)
+        
+    def plot_distances(self, its=None, x_opt=None, log_std=True, std_interval_alpha=0.25, label=None, 
+                       y_label=None, markevery=None, use_ls_its=True, time=False, *args, **kwargs):
+        if its is None:
+            if use_ls_its and self.ls_its is not None:
+                print(f'Line search iteration counter is used for plotting {label}')
+                its_all = self.ls_its_all
+            elif time:
+                its_all = self.ts_all
+            else:
+                its_all = self.its_all
+        if x_opt is None:
+            if self.loss.x_opt is None:
+                x_opt = np.mean([xs[-1] for xs in self.xs_all.values()], axis=0)
+            else:
+                x_opt = self.loss.x_opt
+        if label is None:
+            label = self.label
+        if y_label is None:
+            y_label = r'$\Vert x-x^*\Vert^2$'
+        n_seeds = len(self.xs_all)
+        if n_seeds == 1:
+            dists = [self.loss.norm(x - x_opt) ** 2 for x in self.xs]
+            if markevery is None:
+                markevery = max(1, len(dists) // 20)
+            plt.plot(its, dists, label=label, markevery=markevery, *args, **kwargs)
+        else:
+            dists = [np.asarray([self.loss.norm(x - x_opt)** 2 for x in xs]) for xs in self.xs_all.values()]
+            plot_with_std(its, dists, log_std, std_interval_alpha, label, markevery, *args, **kwargs)
+        plt.ylabel(y_label)
+        
     @property
     def best_loss_value(self):
         if not self.loss_is_computed:
             self.compute_loss_of_iterates()
         return np.min([np.min(loss_vals) for loss_vals in self.loss_vals_all.values()])
-    
-    def convert_its_to_epochs(self, batch_size=1):
-        if self.its_converted_to_epochs:
-            return
-        self.its_per_epoch = self.loss.n / batch_size
-        for seed, its in self.its_all.items():
-            self.its_all[seed] = np.asarray(its) / self.its_per_epoch
-        self.its = np.asarray(self.its) / self.its_per_epoch
-        self.its_converted_to_epochs = True
-        
-    def plot_losses(self, its=None, f_opt=None, log_std=True, label=None, markevery=None, alpha=0.25, *args, **kwargs):
-        if not self.loss_is_computed:
-            self.compute_loss_of_iterates()
-        if its is None:
-            its = np.mean([np.asarray(its_) for its_ in self.its_all.values()], axis=0)
-        if f_opt is None:
-            f_opt = self.loss.f_opt
-        if log_std:
-            y_log = [np.log(loss_vals-f_opt) for loss_vals in self.loss_vals_all.values()]
-            y_log_ave = np.mean(y_log, axis=0)
-            y_log_std = np.std(y_log, axis=0, ddof=1)
-            lower, upper = np.exp(y_log_ave - y_log_std), np.exp(y_log_ave + y_log_std)
-            y_ave = np.exp(y_log_ave)
-        else:
-            y = [loss_vals-f_opt for loss_vals in self.loss_vals_all.values()]
-            y_ave = np.mean(y, axis=0)
-            y_std = np.std(y, axis=0, ddof=1)
-            lower, upper = y_ave - y_std, y_ave + y_std
-        if label is None:
-            label = self.label
-        if markevery is None:
-            markevery = max(1, len(y_ave)//20)
-            
-        plot = plt.plot(its, y_ave, label=label, markevery=markevery, *args, **kwargs)
-        if len(self.loss_vals_all.keys()) > 1:
-            plt.fill_between(its, lower, upper, alpha=alpha, color=plot[0].get_color())
-        plt.ylabel(r'$f(x)-f^*$')
-        
-    def plot_distances(self, its=None, x_opt=None, log_std=True, label=None, markevery=None, alpha=0.25, *args, **kwargs):
-        if its is None:
-            its = np.mean([np.asarray(its_) for its_ in self.its_all.values()], axis=0)
-        if x_opt is None:
-            if self.loss.x_opt is None:
-                x_opt = self.xs[-1]
-            else:
-                x_opt = self.loss.x_opt
-        
-        dists = [np.asarray([self.loss.norm(x-x_opt)**2 for x in xs]) for xs in self.xs_all.values()]
-        if log_std:
-            y_log = [np.log(dist) for dist in dists]
-            y_log_ave = np.mean(y_log, axis=0)
-            y_log_std = np.std(y_log, axis=0, ddof=1)
-            lower, upper = np.exp(y_log_ave - y_log_std), np.exp(y_log_ave + y_log_std)
-            y_ave = np.exp(y_log_ave)
-        else:
-            y = dists
-            y_ave = np.mean(y, axis=0)
-            y_std = np.std(y, axis=0, ddof=1)
-            lower, upper = y_ave - y_std, y_ave + y_std
-        if label is None:
-            label = self.label
-        if markevery is None:
-            markevery = max(1, len(y_ave)//20)
-            
-        plot = plt.plot(its, y_ave, label=label, markevery=markevery, *args, **kwargs)
-        if len(self.xs_all.keys()) > 1:
-            plt.fill_between(its, lower, upper, alpha=alpha, color=plot[0].get_color())
-        plt.ylabel(r'$\Vert x-x^*\Vert^2$')
         
     def save(self, file_name=None, path='./results/'):
         if file_name is None:
             file_name = self.label
         if path[-1] != '/':
             path += '/'
+        # To make the dumped file smaller, copy the reference to a variable, and remove the loss
+        loss = self.loss
         self.loss = None
         Path(path).mkdir(parents=True, exist_ok=True)
-        f = open(path + file_name, 'wb')
-        pickle.dump(self, f)
-        f.close()
+        with open(path + file_name, 'wb') as f:
+            pickle.dump(self, f)
+        self.loss = loss
         
     @classmethod
-    def from_pickle(cls, path, loss):
+    def from_pickle(cls, path, loss=None):
         if not os.path.isfile(path):
             return None
         with open(path, 'rb') as f:
             trace = pickle.load(f)
             trace.loss = loss
+        if loss is not None:
+            loss.f_opt = min(self.best_loss_value, loss.f_opt)
         return trace

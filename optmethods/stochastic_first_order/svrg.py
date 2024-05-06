@@ -1,9 +1,9 @@
 import numpy as np
 
-from optmethods.optimizer import StochasticOptimizer
+from optmethods.optimizer import Optimizer
 
 
-class Svrg(StochasticOptimizer):
+class Svrg(Optimizer):
     """
     Stochastic variance-reduced gradient descent with constant stepsize.
     Reference:
