@@ -219,7 +219,7 @@ class LogisticRegression(Oracle):
         if self._ave_smoothness is not None:
             return self._ave_smoothness
         ave_squared_sum = row_norms(self.A, squared=True).mean()
-        self._ave_smoothness = 0.25*ave_squared_sum + self.l2
+        self._ave_smoothness = 0.25 * ave_squared_sum + self.l2
         return self._ave_smoothness
     
     def batch_smoothness(self, batch_size):
