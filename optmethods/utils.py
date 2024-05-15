@@ -1,8 +1,6 @@
 import math
-import numpy as np
 import os
 import pickle
-import random
 
 
 def relative_round(x):
@@ -23,13 +21,3 @@ def get_trace(path, loss):
     trace.loss = loss
     f.close()
     return trace
-
-
-def set_seed(seed=42):
-    """
-    :param seed:
-    :return:
-    """
-    random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
