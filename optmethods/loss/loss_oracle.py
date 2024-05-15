@@ -27,7 +27,7 @@ class Oracle():
         self.regularizer = regularizer
         self.seed = seed
         
-        if (l1 > 0 or l2_in_prox) and regularizer is None:
+        if (l1 > 0 or (l2 > 0 and l2_in_prox)) and regularizer is None:
             l2_prox = l2 if l2_in_prox else 0
             self.regularizer = Regularizer(l1=l1, l2=l2_prox)
         self.rng = np.random.default_rng(seed)
