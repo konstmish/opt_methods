@@ -75,7 +75,7 @@ class RegNewton(Optimizer):
             self.identity_coef = (self.H * grad_norm)**0.5
             self.x_old = copy.deepcopy(self.x)
             self.grad_old = copy.deepcopy(self.grad)
-            delta_x = -np.linalg.solve(self.hess + self.identity_coef*np.eye(self.loss.dim), self.grad)
+            delta_x = -np.linalg.lstsq(self.hess + self.identity_coef*np.eye(self.loss.dim), self.grad)[0]
             self.x += delta_x
         
     def init_run(self, *args, **kwargs):

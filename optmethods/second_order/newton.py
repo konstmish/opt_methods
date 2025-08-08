@@ -17,7 +17,7 @@ class Newton(Optimizer):
     def step(self):
         self.grad = self.loss.gradient(self.x)
         self.hess = self.loss.hessian(self.x)
-        inv_hess_grad_prod = np.linalg.solve(self.hess, self.grad)
+        inv_hess_grad_prod = np.linalg.lstsq(self.hess, self.grad)[0]
         if self.line_search is None:
             self.x -= self.lr * inv_hess_grad_prod
         else:
